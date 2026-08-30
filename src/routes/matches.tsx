@@ -1,8 +1,6 @@
-import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
+// Layout route: children render at /matches (index) and /matches/$matchId.
 export const Route = createFileRoute("/matches")({
   component: () => <Outlet />,
 });
-
-// Layout route: children render at /matches (index) and /matches/$matchId.
-export const _unused = useRouterState;
