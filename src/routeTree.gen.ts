@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as MatchesRouteImport } from './routes/matches'
+import { Route as OffersRouteImport } from './routes/offers'
 import { Route as MatchesIndexRouteImport } from './routes/matches.index'
 import { Route as MatchesMatchIdRouteImport } from './routes/matches.$matchId'
 
@@ -30,6 +31,11 @@ const MatchesRoute = MatchesRouteImport.update({
   path: '/matches',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OffersRoute = OffersRouteImport.update({
+  id: '/offers',
+  path: '/offers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MatchesIndexRoute = MatchesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -45,12 +51,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/matches': typeof MatchesRouteWithChildren
+  '/offers': typeof OffersRoute
   '/matches/$matchId': typeof MatchesMatchIdRoute
   '/matches/': typeof MatchesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/offers': typeof OffersRoute
   '/matches/$matchId': typeof MatchesMatchIdRoute
   '/matches': typeof MatchesIndexRoute
 }
@@ -59,19 +67,27 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/matches': typeof MatchesRouteWithChildren
+  '/offers': typeof OffersRoute
   '/matches/$matchId': typeof MatchesMatchIdRoute
   '/matches/': typeof MatchesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/matches' | '/matches/$matchId' | '/matches/'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/matches'
+    | '/offers'
+    | '/matches/$matchId'
+    | '/matches/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/matches/$matchId' | '/matches'
+  to: '/' | '/dashboard' | '/offers' | '/matches/$matchId' | '/matches'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/matches'
+    | '/offers'
     | '/matches/$matchId'
     | '/matches/'
   fileRoutesById: FileRoutesById
@@ -80,6 +96,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   MatchesRoute: typeof MatchesRouteWithChildren
+  OffersRoute: typeof OffersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -103,6 +120,13 @@ declare module '@tanstack/react-router' {
       path: '/matches'
       fullPath: '/matches'
       preLoaderRoute: typeof MatchesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offers': {
+      id: '/offers'
+      path: '/offers'
+      fullPath: '/offers'
+      preLoaderRoute: typeof OffersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/matches/': {
@@ -139,6 +163,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   MatchesRoute: MatchesRouteWithChildren,
+  OffersRoute: OffersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
