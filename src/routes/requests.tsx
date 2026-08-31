@@ -6,7 +6,8 @@ import { ListingForm } from "@/components/ListingForm";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/requests")({
-  validateSearch: (search: Record<string, unknown>) => ({ new: search["new"] === true }),
+  validateSearch: (search: Record<string, unknown>): { new?: boolean } =>
+    search["new"] === true ? { new: true } : {},
   head: () => ({
     meta: [
       { title: "Requests — Business Match" },
