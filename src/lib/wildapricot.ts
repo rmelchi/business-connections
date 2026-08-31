@@ -61,7 +61,7 @@ export function applyContactToMember(member: Member, contact: WildApricotContact
     wildapricot_contact_id: contact.Id,
     name: `${contact.FirstName} ${contact.LastName}`,
     email: contact.Email,
-    phone: contact.Phone,
+    ...(contact.Phone === undefined ? {} : { phone: contact.Phone }),
     company: contact.Organization,
     membership_level: contact.MembershipLevel.Name,
     membership_status,

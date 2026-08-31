@@ -175,7 +175,8 @@ function buildExplanation(
   provider: Member,
   factors: MatchFactor[],
 ): string {
-  const top = [...factors].sort((a, b) => b.weight * b.score - a.weight * a.score)[0];
+  const sorted = [...factors].sort((a, b) => b.weight * b.score - a.weight * a.score);
+  const top = sorted[0] ?? { label: "Overall fit", score: 0 };
   return [
     `${requester.company} is looking for “${request.title}”, and ${provider.company} offers “${offer.title}”.`,
     `The strongest signal is ${top.label.toLowerCase()} (${Math.round(top.score * 100)}%).`,

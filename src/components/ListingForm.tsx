@@ -58,8 +58,8 @@ export function ListingForm({
         const draft = {
           title: form.title,
           description: form.description,
-          category: form.category,
-          industry: form.industry,
+          category: form.category ?? "",
+          industry: form.industry ?? "",
           geography: form.geography,
           product_service: form.product_service,
           audience: form.audience,
