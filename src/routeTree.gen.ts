@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as OffersRouteImport } from './routes/offers'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as MatchesIndexRouteImport } from './routes/matches.index'
 import { Route as MatchesMatchIdRouteImport } from './routes/matches.$matchId'
 
@@ -36,6 +38,16 @@ const OffersRoute = OffersRouteImport.update({
   path: '/offers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestsRoute = RequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MatchesIndexRoute = MatchesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -52,6 +64,8 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/matches': typeof MatchesRouteWithChildren
   '/offers': typeof OffersRoute
+  '/profile': typeof ProfileRoute
+  '/requests': typeof RequestsRoute
   '/matches/$matchId': typeof MatchesMatchIdRoute
   '/matches/': typeof MatchesIndexRoute
 }
@@ -59,6 +73,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/offers': typeof OffersRoute
+  '/profile': typeof ProfileRoute
+  '/requests': typeof RequestsRoute
   '/matches/$matchId': typeof MatchesMatchIdRoute
   '/matches': typeof MatchesIndexRoute
 }
@@ -68,6 +84,8 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/matches': typeof MatchesRouteWithChildren
   '/offers': typeof OffersRoute
+  '/profile': typeof ProfileRoute
+  '/requests': typeof RequestsRoute
   '/matches/$matchId': typeof MatchesMatchIdRoute
   '/matches/': typeof MatchesIndexRoute
 }
@@ -78,16 +96,27 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/matches'
     | '/offers'
+    | '/profile'
+    | '/requests'
     | '/matches/$matchId'
     | '/matches/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/offers' | '/matches/$matchId' | '/matches'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/offers'
+    | '/profile'
+    | '/requests'
+    | '/matches/$matchId'
+    | '/matches'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/matches'
     | '/offers'
+    | '/profile'
+    | '/requests'
     | '/matches/$matchId'
     | '/matches/'
   fileRoutesById: FileRoutesById
@@ -97,6 +126,8 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   MatchesRoute: typeof MatchesRouteWithChildren
   OffersRoute: typeof OffersRoute
+  ProfileRoute: typeof ProfileRoute
+  RequestsRoute: typeof RequestsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -127,6 +158,20 @@ declare module '@tanstack/react-router' {
       path: '/offers'
       fullPath: '/offers'
       preLoaderRoute: typeof OffersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/requests': {
+      id: '/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof RequestsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/matches/': {
@@ -164,6 +209,8 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   MatchesRoute: MatchesRouteWithChildren,
   OffersRoute: OffersRoute,
+  ProfileRoute: ProfileRoute,
+  RequestsRoute: RequestsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
