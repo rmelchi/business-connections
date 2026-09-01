@@ -14,16 +14,533 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      match_feedback: {
+        Row: {
+          created_at: string
+          id: string
+          interest: Database["public"]["Enums"]["interest_state"]
+          match_id: string
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interest?: Database["public"]["Enums"]["interest_state"]
+          match_id: string
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interest?: Database["public"]["Enums"]["interest_state"]
+          match_id?: string
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_feedback_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_feedback_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_feedback_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          created_at: string
+          engine: string
+          explanation: string
+          factors: Json
+          id: string
+          offer_excerpt: string
+          offer_id: string
+          provider_id: string
+          reciprocal: boolean
+          reciprocal_match_id: string | null
+          request_excerpt: string
+          request_id: string
+          requester_id: string
+          score: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          engine?: string
+          explanation?: string
+          factors?: Json
+          id: string
+          offer_excerpt?: string
+          offer_id: string
+          provider_id: string
+          reciprocal?: boolean
+          reciprocal_match_id?: string | null
+          request_excerpt?: string
+          request_id: string
+          requester_id: string
+          score?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          engine?: string
+          explanation?: string
+          factors?: Json
+          id?: string
+          offer_excerpt?: string
+          offer_id?: string
+          provider_id?: string
+          reciprocal?: boolean
+          reciprocal_match_id?: string | null
+          request_excerpt?: string
+          request_id?: string
+          requester_id?: string
+          score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_roles: {
+        Row: {
+          created_at: string
+          id: string
+          profile_id: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profile_id: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profile_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_roles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_roles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          match_id: string | null
+          profile_id: string
+          read: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id: string
+          match_id?: string | null
+          profile_id: string
+          read?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          match_id?: string | null
+          profile_id?: string
+          read?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          audience: Database["public"]["Enums"]["audience_type"]
+          category: string
+          created_at: string
+          description: string
+          embedding: Json | null
+          geography: string
+          id: string
+          industry: string
+          keywords: string[]
+          member_id: string
+          product_service: Database["public"]["Enums"]["product_service_type"]
+          status: Database["public"]["Enums"]["listing_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: Database["public"]["Enums"]["audience_type"]
+          category?: string
+          created_at?: string
+          description?: string
+          embedding?: Json | null
+          geography?: string
+          id?: string
+          industry?: string
+          keywords?: string[]
+          member_id: string
+          product_service?: Database["public"]["Enums"]["product_service_type"]
+          status?: Database["public"]["Enums"]["listing_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: Database["public"]["Enums"]["audience_type"]
+          category?: string
+          created_at?: string
+          description?: string
+          embedding?: Json | null
+          geography?: string
+          id?: string
+          industry?: string
+          keywords?: string[]
+          member_id?: string
+          product_service?: Database["public"]["Enums"]["product_service_type"]
+          status?: Database["public"]["Enums"]["listing_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          auth_user_id: string | null
+          avatar_initials: string
+          bio: string
+          company: string
+          created_at: string
+          email: string
+          geography: string
+          id: string
+          industry: string
+          last_synced_at: string
+          matching_enabled: boolean
+          membership_level: string
+          membership_status: Database["public"]["Enums"]["membership_status"]
+          name: string
+          phone: string | null
+          title: string
+          updated_at: string
+          wildapricot_contact_id: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          avatar_initials?: string
+          bio?: string
+          company?: string
+          created_at?: string
+          email: string
+          geography?: string
+          id: string
+          industry?: string
+          last_synced_at?: string
+          matching_enabled?: boolean
+          membership_level?: string
+          membership_status?: Database["public"]["Enums"]["membership_status"]
+          name: string
+          phone?: string | null
+          title?: string
+          updated_at?: string
+          wildapricot_contact_id: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          avatar_initials?: string
+          bio?: string
+          company?: string
+          created_at?: string
+          email?: string
+          geography?: string
+          id?: string
+          industry?: string
+          last_synced_at?: string
+          matching_enabled?: boolean
+          membership_level?: string
+          membership_status?: Database["public"]["Enums"]["membership_status"]
+          name?: string
+          phone?: string | null
+          title?: string
+          updated_at?: string
+          wildapricot_contact_id?: string
+        }
+        Relationships: []
+      }
+      requests: {
+        Row: {
+          audience: Database["public"]["Enums"]["audience_type"]
+          category: string
+          created_at: string
+          description: string
+          embedding: Json | null
+          expires_at: string | null
+          geography: string
+          id: string
+          industry: string
+          keywords: string[]
+          member_id: string
+          product_service: Database["public"]["Enums"]["product_service_type"]
+          status: Database["public"]["Enums"]["listing_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: Database["public"]["Enums"]["audience_type"]
+          category?: string
+          created_at?: string
+          description?: string
+          embedding?: Json | null
+          expires_at?: string | null
+          geography?: string
+          id?: string
+          industry?: string
+          keywords?: string[]
+          member_id: string
+          product_service?: Database["public"]["Enums"]["product_service_type"]
+          status?: Database["public"]["Enums"]["listing_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: Database["public"]["Enums"]["audience_type"]
+          category?: string
+          created_at?: string
+          description?: string
+          embedding?: Json | null
+          expires_at?: string | null
+          geography?: string
+          id?: string
+          industry?: string
+          keywords?: string[]
+          member_id?: string
+          product_service?: Database["public"]["Enums"]["product_service_type"]
+          status?: Database["public"]["Enums"]["listing_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requests_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      member_directory: {
+        Row: {
+          avatar_initials: string | null
+          bio: string | null
+          company: string | null
+          created_at: string | null
+          geography: string | null
+          id: string | null
+          industry: string | null
+          last_synced_at: string | null
+          matching_enabled: boolean | null
+          membership_level: string | null
+          membership_status:
+            | Database["public"]["Enums"]["membership_status"]
+            | null
+          name: string | null
+          title: string | null
+          updated_at: string | null
+          wildapricot_contact_id: string | null
+        }
+        Insert: {
+          avatar_initials?: string | null
+          bio?: string | null
+          company?: string | null
+          created_at?: string | null
+          geography?: string | null
+          id?: string | null
+          industry?: string | null
+          last_synced_at?: string | null
+          matching_enabled?: boolean | null
+          membership_level?: string | null
+          membership_status?:
+            | Database["public"]["Enums"]["membership_status"]
+            | null
+          name?: string | null
+          title?: string | null
+          updated_at?: string | null
+          wildapricot_contact_id?: string | null
+        }
+        Update: {
+          avatar_initials?: string | null
+          bio?: string | null
+          company?: string | null
+          created_at?: string | null
+          geography?: string | null
+          id?: string | null
+          industry?: string | null
+          last_synced_at?: string | null
+          matching_enabled?: boolean | null
+          membership_level?: string | null
+          membership_status?:
+            | Database["public"]["Enums"]["membership_status"]
+            | null
+          name?: string | null
+          title?: string | null
+          updated_at?: string | null
+          wildapricot_contact_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      current_profile_id: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      sync_wildapricot_contact: {
+        Args: {
+          _company: string
+          _contact_id: string
+          _email: string
+          _membership_level: string
+          _membership_status: Database["public"]["Enums"]["membership_status"]
+          _name: string
+          _phone: string
+        }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "member" | "admin"
+      audience_type: "b2b" | "b2c" | "both"
+      interest_state: "none" | "interested" | "not_relevant"
+      listing_status: "active" | "inactive"
+      membership_status: "active" | "lapsed" | "pending" | "suspended"
+      product_service_type: "product" | "service" | "both"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +667,13 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["member", "admin"],
+      audience_type: ["b2b", "b2c", "both"],
+      interest_state: ["none", "interested", "not_relevant"],
+      listing_status: ["active", "inactive"],
+      membership_status: ["active", "lapsed", "pending", "suspended"],
+      product_service_type: ["product", "service", "both"],
+    },
   },
 } as const
