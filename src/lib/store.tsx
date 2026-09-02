@@ -264,7 +264,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           requester_id: m.requester_id,
           provider_id: m.provider_id,
           score: m.score,
-          factors: m.factors,
+          factors: JSON.parse(JSON.stringify(m.factors)),
           explanation: m.explanation,
           request_excerpt: m.request_excerpt,
           offer_excerpt: m.offer_excerpt,
@@ -346,7 +346,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const insertListing = useCallback(
     async (table: "offers" | "requests", draft: ListingDraft) => {
       if (!currentMember) return;
-      const payload = {
+      const base = {
         member_id: currentMember.id,
         title: draft.title,
         description: draft.description,
@@ -357,19 +357,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         audience: draft.audience,
         keywords: draft.keywords,
         status: draft.status,
-        ...(table === "requests" ? { expires_at: draft.expires_at ?? null } : {}),
       };
+
+      if (table === "offers") {
+        const { data, error: insertError } = await supabase
+          .from("offers")
+          .insert(base)
+          .select()
+          .single();
+        if (insertError) {
+          setError(insertError.message);
+          return;
+        }
+        setOffers((prev) => [toOffer(data), ...prev]);
+        return;
+      }
+
       const { data, error: insertError } = await supabase
-        .from(table)
-        .insert(payload)
+        .from("requests")
+        .insert({ ...base, expires_at: draft.expires_at ?? null })
         .select()
         .single();
       if (insertError) {
         setError(insertError.message);
         return;
       }
-      if (table === "offers") setOffers((prev) => [toOffer(data), ...prev]);
-      else setRequests((prev) => [toRequest(data), ...prev]);
+      setRequests((prev) => [toRequest(data), ...prev]);
     },
     [currentMember],
   );

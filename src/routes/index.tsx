@@ -34,10 +34,21 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
-  const submit = (value: string) => {
-    if (signIn(value)) navigate({ to: "/dashboard" });
-    else setError("No member account found for that email address.");
+  const submit = async (value: string) => {
+    if (pending) return;
+    setPending(true);
+    setError("");
+    try {
+      const ok = await signIn(value);
+      if (ok) await navigate({ to: "/dashboard" });
+      else setError("No member account found for that email address.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Sign-in failed. Please try again.");
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
@@ -91,7 +102,7 @@ function LoginPage() {
             className="mt-8 grid gap-4"
             onSubmit={(e) => {
               e.preventDefault();
-              submit(email);
+              void submit(email);
             }}
           >
             <div className="grid gap-2">
@@ -121,12 +132,17 @@ function LoginPage() {
                 placeholder="••••••••"
               />
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            )}
             <button
               type="submit"
-              className="mt-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+              disabled={pending}
+              className="mt-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
             >
-              Sign in
+              {pending ? "Signing in…" : "Sign in"}
             </button>
           </form>
 
@@ -136,8 +152,10 @@ function LoginPage() {
               {DEMO.map((d) => (
                 <button
                   key={d.email}
-                  onClick={() => submit(d.email)}
-                  className="rounded-sm border border-border bg-card px-3 py-2 text-left text-[13px] transition-colors hover:border-ring"
+                  type="button"
+                  disabled={pending}
+                  onClick={() => void submit(d.email)}
+                  className="rounded-sm border border-border bg-card px-3 py-2 text-left text-[13px] transition-colors hover:border-ring disabled:opacity-60"
                 >
                   {d.label}
                 </button>

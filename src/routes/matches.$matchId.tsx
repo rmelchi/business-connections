@@ -182,9 +182,15 @@ function MatchDetailPage() {
             <p className="text-eyebrow">Contact details</p>
             {mutualInterest ? (
               <div className="mt-3 grid gap-1 text-sm">
-                <a className="underline underline-offset-4" href={`mailto:${counterpart.email}`}>
-                  {counterpart.email}
-                </a>
+                {counterpart.email ? (
+                  <a className="underline underline-offset-4" href={`mailto:${counterpart.email}`}>
+                    {counterpart.email}
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground">
+                    Contact details are being released — refresh in a moment.
+                  </span>
+                )}
                 {counterpart.phone && <span>{counterpart.phone}</span>}
                 <p className="mt-2 text-xs text-muted-foreground">
                   Released because both members expressed interest.
