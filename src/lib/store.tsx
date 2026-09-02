@@ -346,7 +346,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const insertListing = useCallback(
     async (table: "offers" | "requests", draft: ListingDraft) => {
       if (!currentMember) return;
-      const payload = {
+      const base = {
         member_id: currentMember.id,
         title: draft.title,
         description: draft.description,
@@ -357,19 +357,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         audience: draft.audience,
         keywords: draft.keywords,
         status: draft.status,
-        ...(table === "requests" ? { expires_at: draft.expires_at ?? null } : {}),
       };
+
+      if (table === "offers") {
+        const { data, error: insertError } = await supabase
+          .from("offers")
+          .insert(base)
+          .select()
+          .single();
+        if (insertError) {
+          setError(insertError.message);
+          return;
+        }
+        setOffers((prev) => [toOffer(data), ...prev]);
+        return;
+      }
+
       const { data, error: insertError } = await supabase
-        .from(table)
-        .insert(payload)
+        .from("requests")
+        .insert({ ...base, expires_at: draft.expires_at ?? null })
         .select()
         .single();
       if (insertError) {
         setError(insertError.message);
         return;
       }
-      if (table === "offers") setOffers((prev) => [toOffer(data), ...prev]);
-      else setRequests((prev) => [toRequest(data), ...prev]);
+      setRequests((prev) => [toRequest(data), ...prev]);
     },
     [currentMember],
   );
