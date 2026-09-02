@@ -27,10 +27,15 @@ const contactSchema = z.object({
 });
 
 /** Admin-only: only association admins may run identity synchronization. */
-async function assertAdmin(supabase: {
-  rpc: (fn: "has_role", args: { _user_id: string; _role: "admin" }) => Promise<{ data: unknown }>;
-}, userId: string) {
-  const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+async function assertAdmin(
+  supabase: { rpc: (...args: never[]) => unknown },
+  userId: string,
+) {
+  const rpc = supabase.rpc as unknown as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown }>;
+  const { data } = await rpc("has_role", { _user_id: userId, _role: "admin" });
   if (data !== true) throw new Error("Administrator access is required to run a sync.");
 }
 

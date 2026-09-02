@@ -264,7 +264,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           requester_id: m.requester_id,
           provider_id: m.provider_id,
           score: m.score,
-          factors: m.factors,
+          factors: JSON.parse(JSON.stringify(m.factors)),
           explanation: m.explanation,
           request_excerpt: m.request_excerpt,
           offer_excerpt: m.offer_excerpt,
