@@ -26,25 +26,29 @@ export function AppShell({
   actions?: ReactNode;
   children: ReactNode;
 }) {
-  const { currentMember, signOut, notifications } = useStore();
+  const { currentMember, signOut, notifications, loading, error } = useStore();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
-  const [ready, setReady] = useState(false);
 
+  // Only redirect once the session/profile load has actually settled, so a
+  // protected route never flashes the wrong content mid-load.
   useEffect(() => {
-    const t = setTimeout(() => setReady(true), 60);
-    return () => clearTimeout(t);
-  }, []);
+    if (!loading && !currentMember) navigate({ to: "/", replace: true });
+  }, [loading, currentMember, navigate]);
 
-  useEffect(() => {
-    if (ready && !currentMember) navigate({ to: "/", replace: true });
-  }, [ready, currentMember, navigate]);
-
-  if (!currentMember) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
         Loading your workspace…
+      </div>
+    );
+  }
+
+  if (!currentMember) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6 text-center text-sm text-muted-foreground">
+        {error ?? "Redirecting to sign in…"}
       </div>
     );
   }
@@ -98,8 +102,7 @@ export function AppShell({
             </span>
             <button
               onClick={() => {
-                signOut();
-                navigate({ to: "/", replace: true });
+                void signOut().then(() => navigate({ to: "/", replace: true }));
               }}
               className="hidden rounded-sm border border-ink-foreground/25 px-3 py-1.5 text-xs font-medium text-ink-foreground/80 transition-colors hover:bg-ink-foreground/10 sm:block"
             >
