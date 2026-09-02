@@ -20,7 +20,11 @@ export interface Member {
   /** External identity link — authoritative key in WildApricot. */
   wildapricot_contact_id: string;
   name: string;
-  email: string;
+  /**
+   * Contact-protected. The network directory view omits email/phone, so this is
+   * only populated for your own profile (or for an admin). Never assume it exists.
+   */
+  email?: string;
   phone?: string;
   company: string;
   title: string;

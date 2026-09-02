@@ -67,7 +67,7 @@ function ProfilePage() {
           <div className="mt-2">
             <Field label="WildApricot Contact ID" value={me.wildapricot_contact_id} readOnly />
             <Field label="Name" value={me.name} readOnly />
-            <Field label="Email" value={me.email} readOnly />
+            <Field label="Email" value={me.email ?? ""} readOnly />
             <Field label="Phone" value={me.phone ?? ""} readOnly />
             <Field label="Company" value={me.company} readOnly />
             <Field label="Membership level" value={me.membership_level} readOnly />
