@@ -34,10 +34,21 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
-  const submit = (value: string) => {
-    if (signIn(value)) navigate({ to: "/dashboard" });
-    else setError("No member account found for that email address.");
+  const submit = async (value: string) => {
+    if (pending) return;
+    setPending(true);
+    setError("");
+    try {
+      const ok = await signIn(value);
+      if (ok) await navigate({ to: "/dashboard" });
+      else setError("No member account found for that email address.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Sign-in failed. Please try again.");
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
