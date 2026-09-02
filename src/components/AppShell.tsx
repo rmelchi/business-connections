@@ -131,8 +131,7 @@ export function AppShell({
             ))}
             <button
               onClick={() => {
-                signOut();
-                navigate({ to: "/", replace: true });
+                void signOut().then(() => navigate({ to: "/", replace: true }));
               }}
               className="rounded-sm px-2 py-2 text-left text-sm text-ink-foreground/80"
             >
