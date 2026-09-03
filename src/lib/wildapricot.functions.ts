@@ -4,14 +4,11 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
- * Database-backed WildApricot sync entry points.
+ * WildApricot integration entry points.
  *
- * These are the seam a future WildApricot REST poller or webhook receiver
- * plugs into. Today they only write to our own database via the
- * `sync_wildapricot_contact` function — no live WildApricot credentials are
- * configured yet. WildApricot stays authoritative for identity and membership
- * status; app-owned offers, requests and matching history are never modified,
- * so a lapsed member is disabled for matching rather than deleted.
+ * WildApricot stays authoritative for identity and membership status; the app
+ * owns offers, requests and matching history. Credentials live in backend
+ * secrets and are only ever read inside these handlers.
  */
 
 const membershipStatus = z.enum(["active", "lapsed", "pending", "suspended"]);
@@ -70,15 +67,170 @@ export const syncWildApricotMembershipStatus = createServerFn({ method: "POST" }
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
-      .from("profiles")
-      .update({
-        membership_status: data.status,
-        matching_enabled: data.status === "active",
-        last_synced_at: new Date().toISOString(),
-      })
-      .eq("wildapricot_contact_id", data.contactId);
-    if (error) throw error;
+    const { applyMembershipStatus } = await import("./wildapricot-sync.server");
+    await applyMembershipStatus(data.contactId, data.status);
     return { ok: true };
+  });
+
+export interface IntegrationStatus {
+  configured: boolean;
+  missing: string[];
+  accountId: string | null;
+  webhookSecretConfigured: boolean;
+  webhookPath: string;
+  lastRun: {
+    id: string;
+    kind: string;
+    status: string;
+    startedAt: string;
+    finishedAt: string | null;
+    seen: number;
+    created: number;
+    updated: number;
+    failed: number;
+    error: string | null;
+  } | null;
+  recentRuns: Array<{
+    id: string;
+    kind: string;
+    status: string;
+    startedAt: string;
+    seen: number;
+    failed: number;
+    error: string | null;
+  }>;
+  recentEvents: Array<{
+    id: string;
+    type: string;
+    contactId: string | null;
+    status: string;
+    createdAt: string;
+    error: string | null;
+  }>;
+  memberCounts: { total: number; active: number; matchingEnabled: number; linked: number };
+}
+
+/** Connection + synchronization status for the Admin dashboard. */
+export const getWildApricotStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<IntegrationStatus> => {
+    await assertAdmin(context.supabase, context.userId);
+    const { readConfigState } = await import("./wildapricot-client.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const config = readConfigState();
+
+    const [{ data: runs }, { data: events }, { data: profiles }] = await Promise.all([
+      supabaseAdmin
+        .from("wildapricot_sync_runs")
+        .select("*")
+        .order("started_at", { ascending: false })
+        .limit(5),
+      supabaseAdmin
+        .from("wildapricot_events")
+        .select("id, event_type, contact_id, status, created_at, error_message")
+        .order("created_at", { ascending: false })
+        .limit(8),
+      supabaseAdmin
+        .from("profiles")
+        .select("membership_status, matching_enabled, wildapricot_contact_id"),
+    ]);
+
+    const rows = runs ?? [];
+    const head = rows[0];
+    const members = profiles ?? [];
+
+    return {
+      configured: config.configured,
+      missing: config.missing,
+      accountId: config.accountId,
+      webhookSecretConfigured: config.webhookSecretConfigured,
+      webhookPath: "/api/public/wildapricot/webhook",
+      lastRun: head
+        ? {
+            id: head.id,
+            kind: head.kind,
+            status: head.status,
+            startedAt: head.started_at,
+            finishedAt: head.finished_at,
+            seen: head.contacts_seen,
+            created: head.contacts_created,
+            updated: head.contacts_updated,
+            failed: head.contacts_failed,
+            error: head.error_message,
+          }
+        : null,
+      recentRuns: rows.map((r) => ({
+        id: r.id,
+        kind: r.kind,
+        status: r.status,
+        startedAt: r.started_at,
+        seen: r.contacts_seen,
+        failed: r.contacts_failed,
+        error: r.error_message,
+      })),
+      recentEvents: (events ?? []).map((e) => ({
+        id: e.id,
+        type: e.event_type,
+        contactId: e.contact_id,
+        status: e.status,
+        createdAt: e.created_at,
+        error: e.error_message,
+      })),
+      memberCounts: {
+        total: members.length,
+        active: members.filter((m) => m.membership_status === "active").length,
+        matchingEnabled: members.filter((m) => m.matching_enabled).length,
+        linked: members.filter((m) => Boolean(m.wildapricot_contact_id)).length,
+      },
+    };
+  });
+
+/** Live credential check — never returns or logs the secret values. */
+export const testWildApricotConnection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const client = await import("./wildapricot-client.server");
+    const config = client.readConfigState();
+    if (!config.configured) {
+      return {
+        ok: false as const,
+        configured: false as const,
+        message: `Not configured. Add ${config.missing.join(" and ")} in Project Settings → Secrets.`,
+      };
+    }
+    try {
+      const account = await client.fetchAccount();
+      return {
+        ok: true as const,
+        configured: true as const,
+        message: `Connected to WildApricot account “${account.Name}” (id ${account.Id}).`,
+      };
+    } catch (error) {
+      const { errorMessage } = await import("./wildapricot-sync.server");
+      return { ok: false as const, configured: true as const, message: errorMessage(error) };
+    }
+  });
+
+/** Manual full or incremental synchronization from the Admin dashboard. */
+export const runWildApricotSync = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z
+      .object({ kind: z.enum(["full", "incremental"]).default("full") })
+      .parse(data ?? { kind: "full" }),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { runSync } = await import("./wildapricot-sync.server");
+    const since =
+      data.kind === "incremental"
+        ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+        : null;
+    return runSync({
+      kind: data.kind,
+      since,
+      triggerSource: "admin",
+      triggeredBy: context.userId,
+    });
   });

@@ -449,6 +449,141 @@ export type Database = {
           },
         ]
       }
+      wildapricot_events: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          error_message: string | null
+          event_type: string
+          external_event_id: string
+          id: string
+          payload: Json
+          processed_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          external_event_id: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          external_event_id?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wildapricot_sync_log: {
+        Row: {
+          context: Json
+          created_at: string
+          event_id: string | null
+          id: string
+          level: string
+          message: string
+          run_id: string | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          level?: string
+          message: string
+          run_id?: string | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          level?: string
+          message?: string
+          run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wildapricot_sync_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "wildapricot_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wildapricot_sync_log_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "wildapricot_sync_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wildapricot_sync_runs: {
+        Row: {
+          contacts_created: number
+          contacts_failed: number
+          contacts_seen: number
+          contacts_updated: number
+          created_at: string
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          kind: string
+          started_at: string
+          status: string
+          trigger_source: string
+          triggered_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          contacts_created?: number
+          contacts_failed?: number
+          contacts_seen?: number
+          contacts_updated?: number
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          started_at?: string
+          status?: string
+          trigger_source?: string
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contacts_created?: number
+          contacts_failed?: number
+          contacts_seen?: number
+          contacts_updated?: number
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          started_at?: string
+          status?: string
+          trigger_source?: string
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       member_directory: {
