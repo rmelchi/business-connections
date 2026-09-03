@@ -19,6 +19,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as MatchesIndexRouteImport } from './routes/matches.index'
 import { Route as MatchesMatchIdRouteImport } from './routes/matches.$matchId'
+import { Route as ApiPublicWildapricotWebhookRouteImport } from './routes/api/public/wildapricot/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +71,12 @@ const MatchesMatchIdRoute = MatchesMatchIdRouteImport.update({
   path: '/$matchId',
   getParentRoute: () => MatchesRoute,
 } as any)
+const ApiPublicWildapricotWebhookRoute =
+  ApiPublicWildapricotWebhookRouteImport.update({
+    id: '/api/public/wildapricot/webhook',
+    path: '/api/public/wildapricot/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/requests': typeof RequestsRoute
   '/matches/$matchId': typeof MatchesMatchIdRoute
   '/matches/': typeof MatchesIndexRoute
+  '/api/public/wildapricot/webhook': typeof ApiPublicWildapricotWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,6 +101,7 @@ export interface FileRoutesByTo {
   '/requests': typeof RequestsRoute
   '/matches/$matchId': typeof MatchesMatchIdRoute
   '/matches': typeof MatchesIndexRoute
+  '/api/public/wildapricot/webhook': typeof ApiPublicWildapricotWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,6 +115,7 @@ export interface FileRoutesById {
   '/requests': typeof RequestsRoute
   '/matches/$matchId': typeof MatchesMatchIdRoute
   '/matches/': typeof MatchesIndexRoute
+  '/api/public/wildapricot/webhook': typeof ApiPublicWildapricotWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/requests'
     | '/matches/$matchId'
     | '/matches/'
+    | '/api/public/wildapricot/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/requests'
     | '/matches/$matchId'
     | '/matches'
+    | '/api/public/wildapricot/webhook'
   id:
     | '__root__'
     | '/'
@@ -143,6 +155,7 @@ export interface FileRouteTypes {
     | '/requests'
     | '/matches/$matchId'
     | '/matches/'
+    | '/api/public/wildapricot/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -154,6 +167,7 @@ export interface RootRouteChildren {
   OffersRoute: typeof OffersRoute
   ProfileRoute: typeof ProfileRoute
   RequestsRoute: typeof RequestsRoute
+  ApiPublicWildapricotWebhookRoute: typeof ApiPublicWildapricotWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -228,6 +242,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatchesMatchIdRouteImport
       parentRoute: typeof MatchesRoute
     }
+    '/api/public/wildapricot/webhook': {
+      id: '/api/public/wildapricot/webhook'
+      path: '/api/public/wildapricot/webhook'
+      fullPath: '/api/public/wildapricot/webhook'
+      preLoaderRoute: typeof ApiPublicWildapricotWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -253,6 +274,7 @@ const rootRouteChildren: RootRouteChildren = {
   OffersRoute: OffersRoute,
   ProfileRoute: ProfileRoute,
   RequestsRoute: RequestsRoute,
+  ApiPublicWildapricotWebhookRoute: ApiPublicWildapricotWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
