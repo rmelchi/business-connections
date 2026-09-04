@@ -52,7 +52,7 @@ export const syncWildApricotContact = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => contactSchema.parse(data))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: profileId, error } = await supabaseAdmin.rpc("sync_wildapricot_contact", {
       _contact_id: data.contactId,
@@ -77,7 +77,7 @@ export const syncWildApricotMembershipStatus = createServerFn({ method: "POST" }
     z.object({ contactId: z.string().min(1), status: membershipStatus }).parse(data),
   )
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertAdmin(context.userId);
     const { applyMembershipStatus } = await import("./wildapricot-sync.server");
     await applyMembershipStatus(data.contactId, data.status);
     return { ok: true };
@@ -125,7 +125,7 @@ export interface IntegrationStatus {
 export const getWildApricotStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<IntegrationStatus> => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertAdmin(context.userId);
     const { readConfigState } = await import("./wildapricot-client.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const config = readConfigState();
@@ -200,7 +200,7 @@ export const getWildApricotStatus = createServerFn({ method: "GET" })
 export const testWildApricotConnection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertAdmin(context.userId);
     const client = await import("./wildapricot-client.server");
     const config = client.readConfigState();
     if (!config.configured) {
@@ -232,7 +232,7 @@ export const runWildApricotSync = createServerFn({ method: "POST" })
       .parse(data ?? { kind: "full" }),
   )
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertAdmin(context.userId);
     const { runSync } = await import("./wildapricot-sync.server");
     const since =
       data.kind === "incremental"
