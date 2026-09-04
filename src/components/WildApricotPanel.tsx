@@ -35,7 +35,7 @@ export function WildApricotPanel() {
     setBusy("test");
     setMessage(null);
     try {
-      const result = await testConnection({ data: {} });
+      const result = await testConnection();
       setMessage(result.message);
     } catch (e) {
       setMessage(e instanceof Error ? e.message : String(e));
