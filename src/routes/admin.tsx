@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { AppShell } from "@/components/AppShell";
+import { WildApricotPanel } from "@/components/WildApricotPanel";
 import { useStore } from "@/lib/store";
 import { STRONG_MATCH_THRESHOLD } from "@/lib/matching";
 
