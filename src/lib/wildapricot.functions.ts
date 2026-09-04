@@ -23,17 +23,28 @@ const contactSchema = z.object({
   membershipStatus,
 });
 
-/** Admin-only: only association admins may run identity synchronization. */
-async function assertAdmin(
-  supabase: { rpc: (...args: never[]) => unknown },
-  userId: string,
-) {
-  const rpc = supabase.rpc as unknown as (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ data: unknown }>;
-  const { data } = await rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (data !== true) throw new Error("Administrator access is required to run a sync.");
+/**
+ * Admin-only: only association admins may run identity synchronization.
+ *
+ * The user id comes from a token already verified by `requireSupabaseAuth`, so
+ * the role lookup is done with the service client against `member_roles`
+ * (the middleware's client instance is not reusable inside the handler).
+ */
+async function assertAdmin(userId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+  if (!profile) throw new Error("Administrator access is required to run a sync.");
+  const { data: role } = await supabaseAdmin
+    .from("member_roles")
+    .select("role")
+    .eq("profile_id", profile.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (!role) throw new Error("Administrator access is required to run a sync.");
 }
 
 /** Upsert a WildApricot contact by its external identity key. */
@@ -41,7 +52,7 @@ export const syncWildApricotContact = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => contactSchema.parse(data))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: profileId, error } = await supabaseAdmin.rpc("sync_wildapricot_contact", {
       _contact_id: data.contactId,
@@ -66,7 +77,7 @@ export const syncWildApricotMembershipStatus = createServerFn({ method: "POST" }
     z.object({ contactId: z.string().min(1), status: membershipStatus }).parse(data),
   )
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertAdmin(context.userId);
     const { applyMembershipStatus } = await import("./wildapricot-sync.server");
     await applyMembershipStatus(data.contactId, data.status);
     return { ok: true };
@@ -114,7 +125,7 @@ export interface IntegrationStatus {
 export const getWildApricotStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<IntegrationStatus> => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertAdmin(context.userId);
     const { readConfigState } = await import("./wildapricot-client.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const config = readConfigState();
@@ -189,7 +200,7 @@ export const getWildApricotStatus = createServerFn({ method: "GET" })
 export const testWildApricotConnection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertAdmin(context.userId);
     const client = await import("./wildapricot-client.server");
     const config = client.readConfigState();
     if (!config.configured) {
@@ -221,7 +232,7 @@ export const runWildApricotSync = createServerFn({ method: "POST" })
       .parse(data ?? { kind: "full" }),
   )
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    await assertAdmin(context.userId);
     const { runSync } = await import("./wildapricot-sync.server");
     const since =
       data.kind === "incremental"
