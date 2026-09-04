@@ -82,7 +82,10 @@ function AdminPage() {
         />
       </div>
 
+      <WildApricotPanel />
+
       <div className="surface-card mt-8 overflow-hidden">
+
         <div className="border-b border-border px-6 py-5">
           <h2 className="font-display text-lg font-semibold">Members</h2>
           <p className="mt-1 text-sm text-muted-foreground">
