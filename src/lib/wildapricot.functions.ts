@@ -23,17 +23,28 @@ const contactSchema = z.object({
   membershipStatus,
 });
 
-/** Admin-only: only association admins may run identity synchronization. */
-async function assertAdmin(
-  supabase: { rpc: (...args: never[]) => unknown },
-  userId: string,
-) {
-  const rpc = supabase.rpc as unknown as (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ data: unknown }>;
-  const { data } = await rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (data !== true) throw new Error("Administrator access is required to run a sync.");
+/**
+ * Admin-only: only association admins may run identity synchronization.
+ *
+ * The user id comes from a token already verified by `requireSupabaseAuth`, so
+ * the role lookup is done with the service client against `member_roles`
+ * (the middleware's client instance is not reusable inside the handler).
+ */
+async function assertAdmin(userId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+  if (!profile) throw new Error("Administrator access is required to run a sync.");
+  const { data: role } = await supabaseAdmin
+    .from("member_roles")
+    .select("role")
+    .eq("profile_id", profile.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (!role) throw new Error("Administrator access is required to run a sync.");
 }
 
 /** Upsert a WildApricot contact by its external identity key. */
