@@ -1,7 +1,10 @@
+import { useCallback, useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { AppShell } from "@/components/AppShell";
 import { WildApricotPanel } from "@/components/WildApricotPanel";
+import { MemberRoleControl } from "@/components/MemberRoleControl";
+import type { RoleAuditEntry } from "@/lib/roles.functions";
 import { useStore } from "@/lib/store";
 import { STRONG_MATCH_THRESHOLD } from "@/lib/matching";
 
@@ -35,7 +38,23 @@ function Stat({ label, value, hint }: { label: string; value: string | number; h
 }
 
 function AdminPage() {
-  const { currentMember, members, offers, requests, matches } = useStore();
+  const { currentMember, members, offers, requests, matches, memberById } = useStore();
+  const [audit, setAudit] = useState<RoleAuditEntry[]>([]);
+
+  const isAdmin = currentMember?.role === "admin";
+  const loadAudit = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const { listRoleAudit } = await import("@/lib/roles.functions");
+      setAudit(await listRoleAudit());
+    } catch {
+      setAudit([]);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    void loadAudit();
+  }, [loadAudit]);
 
   if (!currentMember) return <AppShell title="Admin">{null}</AppShell>;
 
@@ -50,6 +69,7 @@ function AdminPage() {
   }
 
   const activeMembers = members.filter((m) => m.membership_status === "active");
+  const adminCount = members.filter((m) => m.assigned_role === "admin").length;
   const strong = matches.filter((m) => m.score >= STRONG_MATCH_THRESHOLD);
   const mutual = matches.filter((m) => m.reciprocal);
 
@@ -101,6 +121,7 @@ function AdminPage() {
                 <th className="px-6 py-3 font-semibold">Contact ID</th>
                 <th className="px-6 py-3 font-semibold">Level</th>
                 <th className="px-6 py-3 font-semibold">Status</th>
+                <th className="px-6 py-3 font-semibold">Platform role</th>
                 <th className="px-6 py-3 font-semibold">Matching</th>
                 <th className="px-6 py-3 font-semibold">Offers</th>
                 <th className="px-6 py-3 font-semibold">Requests</th>
@@ -130,6 +151,30 @@ function AdminPage() {
                       {m.membership_status}
                     </span>
                   </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={
+                          m.assigned_role === "admin"
+                            ? "rounded-full bg-brass/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-brass"
+                            : "rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+                        }
+                      >
+                        {m.assigned_role === "admin" ? "Admin" : "Member"}
+                      </span>
+                      {m.assigned_role === "admin" && m.role !== "admin" && (
+                        <span className="text-[11px] font-medium uppercase tracking-wider text-destructive">
+                          Suspended — membership not active
+                        </span>
+                      )}
+                      <MemberRoleControl
+                        member={m}
+                        isSelf={m.id === currentMember.id}
+                        adminCount={adminCount}
+                        onChanged={loadAudit}
+                      />
+                    </div>
+                  </td>
                   <td className="px-6 py-4 text-muted-foreground">
                     {m.matching_enabled ? "Enabled" : "Disabled"}
                   </td>
@@ -143,6 +188,36 @@ function AdminPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="surface-card mt-6 overflow-hidden">
+        <div className="border-b border-border px-6 py-5">
+          <h2 className="font-display text-lg font-semibold">Role change log</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Every promotion and demotion on this platform. Roles are never written back to
+            WildApricot.
+          </p>
+        </div>
+        <div className="divide-y divide-border">
+          {audit.map((entry) => (
+            <div key={entry.id} className="px-6 py-4 text-sm">
+              <span className="font-medium text-foreground">
+                {memberById(entry.targetProfileId)?.name ?? entry.targetProfileId}
+              </span>{" "}
+              <span className="text-muted-foreground">
+                {entry.oldRole} → {entry.newRole} · by{" "}
+                {(entry.actorProfileId && memberById(entry.actorProfileId)?.name) ?? "system"} ·{" "}
+                {new Date(entry.createdAt).toLocaleString()}
+              </span>
+              {entry.reason && (
+                <p className="mt-1 text-xs text-muted-foreground">“{entry.reason}”</p>
+              )}
+            </div>
+          ))}
+          {audit.length === 0 && (
+            <p className="px-6 py-8 text-sm text-muted-foreground">No role changes recorded yet.</p>
+          )}
         </div>
       </div>
 
