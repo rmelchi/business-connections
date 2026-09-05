@@ -467,6 +467,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     toggleListingStatus,
     setInterest,
     markNotificationsRead,
+    refreshNetwork: refresh,
     memberById: (id) => members.find((m) => m.id === id),
     offerById: (id) => offers.find((o) => o.id === id),
     requestById: (id) => requests.find((r) => r.id === id),
