@@ -41,6 +41,7 @@ interface StoreValue {
   toggleListingStatus: (kind: "offer" | "request", id: string) => Promise<void>;
   setInterest: (matchId: string, state: InterestState) => Promise<void>;
   markNotificationsRead: () => Promise<void>;
+  refreshNetwork: () => Promise<void>;
   memberById: (id: string) => Member | undefined;
   offerById: (id: string) => Offer | undefined;
   requestById: (id: string) => Request | undefined;
@@ -64,7 +65,7 @@ type DirectoryRow = {
   last_synced_at: string;
 };
 
-const toMember = (row: DirectoryRow, role: Member["role"] = "member"): Member => ({
+const toMember = (row: DirectoryRow, assignedRole: Member["role"] = "member"): Member => ({
   id: row.id,
   wildapricot_contact_id: row.wildapricot_contact_id,
   name: row.name,
@@ -75,7 +76,9 @@ const toMember = (row: DirectoryRow, role: Member["role"] = "member"): Member =>
   bio: row.bio,
   membership_level: row.membership_level,
   membership_status: row.membership_status,
-  role,
+  // A lapsed/suspended admin keeps the role record but loses admin access.
+  role: assignedRole === "admin" && row.membership_status === "active" ? "admin" : "member",
+  assigned_role: assignedRole,
   matching_enabled: row.matching_enabled,
   last_synced_at: row.last_synced_at,
   avatar_initials: row.avatar_initials,
