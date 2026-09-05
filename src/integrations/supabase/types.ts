@@ -449,6 +449,65 @@ export type Database = {
           },
         ]
       }
+      role_change_audit: {
+        Row: {
+          actor_profile_id: string | null
+          created_at: string
+          id: string
+          new_role: Database["public"]["Enums"]["app_role"]
+          old_role: Database["public"]["Enums"]["app_role"]
+          reason: string | null
+          target_profile_id: string
+        }
+        Insert: {
+          actor_profile_id?: string | null
+          created_at?: string
+          id?: string
+          new_role: Database["public"]["Enums"]["app_role"]
+          old_role: Database["public"]["Enums"]["app_role"]
+          reason?: string | null
+          target_profile_id: string
+        }
+        Update: {
+          actor_profile_id?: string | null
+          created_at?: string
+          id?: string
+          new_role?: Database["public"]["Enums"]["app_role"]
+          old_role?: Database["public"]["Enums"]["app_role"]
+          reason?: string | null
+          target_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_change_audit_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_change_audit_actor_profile_id_fkey"
+            columns: ["actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_change_audit_target_profile_id_fkey"
+            columns: ["target_profile_id"]
+            isOneToOne: false
+            referencedRelation: "member_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_change_audit_target_profile_id_fkey"
+            columns: ["target_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wildapricot_events: {
         Row: {
           contact_id: string | null
