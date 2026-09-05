@@ -34,7 +34,10 @@ export interface Member {
   bio: string;
   membership_level: string;
   membership_status: MembershipStatus;
+  /** Effective role — an admin whose membership is not active falls back to member. */
   role: UserRole;
+  /** Role record as stored, regardless of membership status. */
+  assigned_role: UserRole;
   /** Derived: lapsed members are excluded from matching but keep their data. */
   matching_enabled: boolean;
   last_synced_at: string;
