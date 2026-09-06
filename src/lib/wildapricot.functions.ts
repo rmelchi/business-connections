@@ -113,11 +113,15 @@ export interface IntegrationStatus {
   recentEvents: Array<{
     id: string;
     type: string;
+    action: string;
     contactId: string | null;
+    accountId: string | null;
     status: string;
     createdAt: string;
+    processedAt: string | null;
     error: string | null;
   }>;
+
   memberCounts: { total: number; active: number; matchingEnabled: number; linked: number };
 }
 
