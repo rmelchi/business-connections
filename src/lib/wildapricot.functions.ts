@@ -189,11 +189,15 @@ export const getWildApricotStatus = createServerFn({ method: "GET" })
       recentEvents: (events ?? []).map((e) => ({
         id: e.id,
         type: e.event_type,
+        action: e.action ?? "",
         contactId: e.contact_id,
+        accountId: e.account_id ?? null,
         status: e.status,
         createdAt: e.created_at,
+        processedAt: e.processed_at,
         error: e.error_message,
       })),
+
       memberCounts: {
         total: members.length,
         active: members.filter((m) => m.membership_status === "active").length,
