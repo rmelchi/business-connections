@@ -510,6 +510,8 @@ export type Database = {
       }
       wildapricot_events: {
         Row: {
+          account_id: string | null
+          action: string
           contact_id: string | null
           created_at: string
           error_message: string | null
@@ -522,6 +524,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_id?: string | null
+          action?: string
           contact_id?: string | null
           created_at?: string
           error_message?: string | null
@@ -534,6 +538,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_id?: string | null
+          action?: string
           contact_id?: string | null
           created_at?: string
           error_message?: string | null

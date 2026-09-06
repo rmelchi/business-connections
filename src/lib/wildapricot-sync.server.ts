@@ -203,17 +203,27 @@ export async function applyMembershipStatus(contactId: string, status: Membershi
   if (error) throw error;
 }
 
-export type WebhookOutcome = "processed" | "duplicate" | "skipped" | "failed";
+export type WebhookOutcome = "processed" | "duplicate" | "skipped" | "ignored" | "failed";
 
 /**
- * Idempotent webhook processing: the event is recorded first, keyed on its
- * external id. A repeated delivery hits the unique index and is reported as a
- * duplicate without re-applying anything.
+ * Idempotent webhook processing.
+ *
+ * The event is recorded first, keyed on its external id, so a repeated
+ * delivery hits the unique index and is reported as a duplicate without
+ * re-applying anything. The payload is never trusted for identity or status:
+ * on any relevant contact/membership event the authoritative record is
+ * re-fetched from WildApricot and pushed through `sync_wildapricot_contact`,
+ * which only rewrites WildApricot-owned columns and matching eligibility.
+ * Offers, requests, matches, roles and history are untouched.
  */
 export async function processWebhookEvent(input: {
   externalEventId: string;
-  eventType: string;
+  messageType: string;
+  action: string;
   contactId: string | null;
+  contactIdRaw: string | null;
+  accountId: string | null;
+  handled: boolean;
   payload: unknown;
 }): Promise<{ outcome: WebhookOutcome; message?: string }> {
   const db = await admin();
@@ -222,8 +232,10 @@ export async function processWebhookEvent(input: {
     .from("wildapricot_events")
     .insert({
       external_event_id: input.externalEventId,
-      event_type: input.eventType,
-      contact_id: input.contactId,
+      event_type: input.messageType,
+      action: input.action,
+      account_id: input.accountId,
+      contact_id: input.contactId ?? input.contactIdRaw,
       payload: (input.payload ?? {}) as never,
       status: "pending",
     })
@@ -249,26 +261,22 @@ export async function processWebhookEvent(input: {
   };
 
   try {
+    if (!input.handled) {
+      const message = `Unhandled message type “${input.messageType}”; no profile changed.`;
+      await settle("ignored", message);
+      return { outcome: "ignored", message };
+    }
+
     if (!input.contactId) {
-      await settle("skipped", "Event carried no contact id.");
-      return { outcome: "skipped", message: "No contact id on event." };
+      const message = input.contactIdRaw
+        ? `Malformed Contact.Id “${input.contactIdRaw}”; no profile changed.`
+        : "Event carried no Contact.Id; no profile changed.";
+      await log(db, { eventId, level: "warn", message });
+      await settle("skipped", message);
+      return { outcome: "skipped", message };
     }
 
     const config = readConfigState();
-    const type = input.eventType.toLowerCase();
-
-    if (type.includes("disabled") || type.includes("lapsed")) {
-      await applyMembershipStatus(input.contactId, "lapsed");
-      await log(db, { eventId, message: `Membership lapsed for contact ${input.contactId}.` });
-      await settle("processed");
-      return { outcome: "processed" };
-    }
-    if (type.includes("suspend")) {
-      await applyMembershipStatus(input.contactId, "suspended");
-      await settle("processed");
-      return { outcome: "processed" };
-    }
-
     if (!config.configured) {
       const message = `Cannot re-fetch contact: ${config.missing.join(", ")} not configured.`;
       await log(db, { eventId, level: "warn", message });
@@ -276,13 +284,23 @@ export async function processWebhookEvent(input: {
       return { outcome: "skipped", message };
     }
 
+    // Authoritative re-fetch — payload status/profile fields are ignored.
     const contact = await fetchContact(input.contactId);
     if (!contact) {
-      await settle("skipped", "Contact not found in WildApricot.");
-      return { outcome: "skipped", message: "Contact not found." };
+      const message = `Contact ${input.contactId} not found in WildApricot.`;
+      await log(db, { eventId, level: "warn", message });
+      await settle("skipped", message);
+      return { outcome: "skipped", message };
     }
-    await upsertContact(db, contact);
-    await log(db, { eventId, message: `Synced contact ${input.contactId} from webhook.` });
+
+    const result = await upsertContact(db, contact);
+    await log(db, {
+      eventId,
+      message:
+        `Synced contact ${input.contactId} from webhook (${input.messageType}` +
+        `${input.action ? `/${input.action}` : ""}); status ${result.status}, ` +
+        `matching ${isMatchingEligible(result.status) ? "enabled" : "disabled"}.`,
+    });
     await settle("processed");
     return { outcome: "processed" };
   } catch (error) {
@@ -292,3 +310,4 @@ export async function processWebhookEvent(input: {
     return { outcome: "failed", message };
   }
 }
+

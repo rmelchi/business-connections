@@ -113,11 +113,15 @@ export interface IntegrationStatus {
   recentEvents: Array<{
     id: string;
     type: string;
+    action: string;
     contactId: string | null;
+    accountId: string | null;
     status: string;
     createdAt: string;
+    processedAt: string | null;
     error: string | null;
   }>;
+
   memberCounts: { total: number; active: number; matchingEnabled: number; linked: number };
 }
 
@@ -138,9 +142,12 @@ export const getWildApricotStatus = createServerFn({ method: "GET" })
         .limit(5),
       supabaseAdmin
         .from("wildapricot_events")
-        .select("id, event_type, contact_id, status, created_at, error_message")
+        .select(
+          "id, event_type, action, account_id, contact_id, status, created_at, processed_at, error_message",
+        )
         .order("created_at", { ascending: false })
-        .limit(8),
+        .limit(15),
+
       supabaseAdmin
         .from("profiles")
         .select("membership_status, matching_enabled, wildapricot_contact_id"),
@@ -182,11 +189,15 @@ export const getWildApricotStatus = createServerFn({ method: "GET" })
       recentEvents: (events ?? []).map((e) => ({
         id: e.id,
         type: e.event_type,
+        action: e.action ?? "",
         contactId: e.contact_id,
+        accountId: e.account_id ?? null,
         status: e.status,
         createdAt: e.created_at,
+        processedAt: e.processed_at,
         error: e.error_message,
       })),
+
       memberCounts: {
         total: members.length,
         active: members.filter((m) => m.membership_status === "active").length,

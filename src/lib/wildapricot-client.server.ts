@@ -227,23 +227,35 @@ export async function fetchContacts(options?: {
   pageSize?: number;
   maxPages?: number;
 }): Promise<WildApricotContact[]> {
-  const pageSize = options?.pageSize ?? 200;
-  const maxPages = options?.maxPages ?? 50;
+  const pageSize = options?.pageSize ?? 100;
+  const maxPages = options?.maxPages ?? 200;
   const filters = ["'Member' eq true"];
   if (options?.modifiedSince) {
     filters.push(`'Profile last updated' ge ${options.modifiedSince}`);
   }
   const filter = encodeURIComponent(filters.join(" AND "));
 
-  const all: WildApricotContact[] = [];
+  // WildApricot may return fewer rows than `$top` (it caps page size server
+  // side), so paging must advance by the number of rows actually returned and
+  // continue until a page comes back empty — stopping at `batch < pageSize`
+  // would silently truncate the sync at the first server-capped page.
+  const byId = new Map<string, WildApricotContact>();
+  let skip = 0;
   for (let page = 0; page < maxPages; page += 1) {
     const path =
-      `/contacts?$async=false&$filter=${filter}` +
-      `&$top=${pageSize}&$skip=${page * pageSize}`;
+      `/contacts?$async=false&$filter=${filter}` + `&$top=${pageSize}&$skip=${skip}`;
     const result = await apiGet<{ Contacts?: RawContact[] }>(path);
     const batch = result.Contacts ?? [];
-    all.push(...batch.map(toContact));
-    if (batch.length < pageSize) break;
+    if (batch.length === 0) break;
+    const before = byId.size;
+    for (const raw of batch) {
+      const contact = toContact(raw);
+      byId.set(contact.Id, contact);
+    }
+    skip += batch.length;
+    // Defensive: an API that ignores `$skip` would loop forever otherwise.
+    if (byId.size === before) break;
   }
-  return all;
+  return [...byId.values()];
 }
+

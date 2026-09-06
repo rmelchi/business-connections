@@ -174,22 +174,56 @@ export function WildApricotPanel() {
           </div>
         )}
 
-        {status && status.recentEvents.length > 0 && (
+        {status && (
           <div>
             <p className="text-eyebrow">Recent webhook events</p>
-            <ul className="mt-2 divide-y divide-border">
-              {status.recentEvents.map((event) => (
-                <li key={event.id} className="flex flex-wrap gap-3 py-2 text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">{event.type}</span>
-                  <span>{event.contactId ?? "—"}</span>
-                  <span>{event.status}</span>
-                  <span>{formatTime(event.createdAt)}</span>
-                  {event.error && <span className="text-destructive">{event.error}</span>}
-                </li>
-              ))}
-            </ul>
+            {status.recentEvents.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                No webhook deliveries recorded yet.
+              </p>
+            ) : (
+              <div className="mt-2 overflow-x-auto">
+                <table className="w-full min-w-[46rem] text-left text-xs">
+                  <thead className="text-eyebrow">
+                    <tr>
+                      <th className="py-2 pr-4 font-medium">Received</th>
+                      <th className="py-2 pr-4 font-medium">Message type</th>
+                      <th className="py-2 pr-4 font-medium">Action</th>
+                      <th className="py-2 pr-4 font-medium">Contact ID</th>
+                      <th className="py-2 pr-4 font-medium">Outcome</th>
+                      <th className="py-2 font-medium">Detail</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border text-muted-foreground">
+                    {status.recentEvents.map((event) => (
+                      <tr key={event.id}>
+                        <td className="py-2 pr-4 whitespace-nowrap">{formatTime(event.createdAt)}</td>
+                        <td className="py-2 pr-4 font-medium text-foreground">{event.type}</td>
+                        <td className="py-2 pr-4">{event.action || "—"}</td>
+                        <td className="py-2 pr-4">{event.contactId ?? "—"}</td>
+                        <td className="py-2 pr-4">
+                          <span
+                            className={
+                              event.status === "failed"
+                                ? "text-destructive"
+                                : event.status === "processed"
+                                  ? "text-foreground"
+                                  : undefined
+                            }
+                          >
+                            {event.status}
+                          </span>
+                        </td>
+                        <td className="py-2">{event.error ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
+
       </div>
     </div>
   );
