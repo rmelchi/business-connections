@@ -321,13 +321,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [computed, currentMember, members]);
 
   const signIn = useCallback(
-    async (email: string) => {
+    async (email: string, password?: string) => {
       try {
         setError(null);
+        const address = email.trim().toLowerCase();
+        if (password) {
+          // Real member sign-in with their own password (set during activation).
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: address,
+            password,
+          });
+          if (signInError) throw signInError;
+          await refresh();
+          return true;
+        }
         const { provisionDemoAccount } = await import("./auth.functions");
-        const creds = await provisionDemoAccount({
-          data: { email: email.trim().toLowerCase() },
-        });
+        const creds = await provisionDemoAccount({ data: { email: address } });
         const { error: signInError } = await supabase.auth.signInWithPassword(creds);
         if (signInError) throw signInError;
         await refresh();
