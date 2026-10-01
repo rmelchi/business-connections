@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { useStore } from "@/lib/store";
@@ -36,14 +36,14 @@ function LoginPage() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
-  const submit = async (value: string) => {
+  const submit = async (value: string, pw?: string) => {
     if (pending) return;
     setPending(true);
     setError("");
     try {
-      const ok = await signIn(value);
-      if (ok) await navigate({ to: "/dashboard" });
-      else setError("No member account found for that email address.");
+      const err = await signIn(value, pw);
+      if (err) setError(err);
+      else await navigate({ to: "/dashboard" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sign-in failed. Please try again.");
     } finally {
@@ -102,7 +102,7 @@ function LoginPage() {
             className="mt-8 grid gap-4"
             onSubmit={(e) => {
               e.preventDefault();
-              void submit(email);
+              void submit(email, password || undefined);
             }}
           >
             <div className="grid gap-2">
@@ -145,6 +145,13 @@ function LoginPage() {
               {pending ? "Signing in…" : "Sign in"}
             </button>
           </form>
+
+          <p className="mt-4 text-sm text-muted-foreground">
+            First time signing in?{" "}
+            <Link to="/activate" className="font-medium text-foreground underline underline-offset-4">
+              Activate your account
+            </Link>
+          </p>
 
           <div className="mt-10 rounded-md border border-border bg-surface p-4">
             <p className="text-eyebrow">Demo accounts</p>

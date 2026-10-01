@@ -34,7 +34,7 @@ interface StoreValue {
   currentMember: Member | null;
   loading: boolean;
   error: string | null;
-  signIn: (email: string) => Promise<boolean>;
+  signIn: (email: string, password?: string) => Promise<string | null>;
   signOut: () => Promise<void>;
   addOffer: (draft: ListingDraft) => Promise<void>;
   addRequest: (draft: ListingDraft) => Promise<void>;
@@ -320,30 +320,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })();
   }, [computed, currentMember, members]);
 
+  /** Returns null on success, or a user-facing error message. */
   const signIn = useCallback(
-    async (email: string, password?: string) => {
+    async (email: string, password?: string): Promise<string | null> => {
+      setError(null);
+      const address = email.trim().toLowerCase();
       try {
-        setError(null);
-        const address = email.trim().toLowerCase();
         if (password) {
-          // Real member sign-in with their own password (set during activation).
           const { error: signInError } = await supabase.auth.signInWithPassword({
             email: address,
             password,
           });
-          if (signInError) throw signInError;
+          if (signInError) {
+            return "Email or password is incorrect. If you have never signed in here, activate your account first.";
+          }
           await refresh();
-          return true;
+          return null;
         }
-        const { provisionDemoAccount } = await import("./auth.functions");
+        const { provisionDemoAccount, DEMO_ACCOUNTS } = await import("./auth.functions");
+        if (!(DEMO_ACCOUNTS as readonly string[]).includes(address)) {
+          return "Please enter your password. First time here? Activate your account below.";
+        }
         const creds = await provisionDemoAccount({ data: { email: address } });
         const { error: signInError } = await supabase.auth.signInWithPassword(creds);
         if (signInError) throw signInError;
         await refresh();
-        return true;
+        return null;
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Sign-in failed.");
-        return false;
+        return e instanceof Error ? e.message : "Sign-in failed.";
       }
     },
     [refresh],
