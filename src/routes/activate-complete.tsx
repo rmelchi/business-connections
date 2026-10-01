@@ -1,7 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
+import { useServerFn } from "@tanstack/react-start";
+
 import { supabase } from "@/integrations/supabase/client";
+import { completeActivation } from "@/lib/activation.functions";
 
 export const Route = createFileRoute("/activate-complete")({
   ssr: false,
@@ -34,6 +37,7 @@ function CompletePage() {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const completeFn = useServerFn(completeActivation);
 
   useEffect(() => {
     const read = async () => {
@@ -52,8 +56,7 @@ function CompletePage() {
     setPending(true);
     setError("");
     try {
-      const { completeActivation } = await import("@/lib/activation.functions");
-      const res = await completeActivation();
+      const res = await completeFn();
       if (!res.ok) {
         setError(FAIL[res.status] ?? "Activation failed.");
         return;

@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 
-import type { ActivationStatus } from "@/lib/activation.functions";
+import { useServerFn } from "@tanstack/react-start";
+
+import { requestActivationEmail, type ActivationStatus } from "@/lib/activation.functions";
 
 export const Route = createFileRoute("/activate")({
   head: () => ({
@@ -38,13 +40,13 @@ function ActivatePage() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const requestFn = useServerFn(requestActivationEmail);
 
   const send = async () => {
     setPending(true);
     setError("");
     try {
-      const { requestActivationEmail } = await import("@/lib/activation.functions");
-      const res = await requestActivationEmail({
+      const res = await requestFn({
         data: {
           email: email.trim().toLowerCase(),
           redirectTo: `${window.location.origin}/activate-complete`,
@@ -53,6 +55,7 @@ function ActivatePage() {
       if (res.sent) setStep("sent");
       else setError(MESSAGES[res.status as Exclude<ActivationStatus, "eligible">]);
     } catch (e) {
+      console.error("activation", e);
       setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
     } finally {
       setPending(false);
