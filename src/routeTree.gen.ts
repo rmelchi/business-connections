@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ActivateRouteImport } from './routes/activate'
+import { Route as ActivateCompleteRouteImport } from './routes/activate-complete'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as MatchesRouteImport } from './routes/matches'
@@ -30,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
 const ActivateRoute = ActivateRouteImport.update({
   id: '/activate',
   path: '/activate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActivateCompleteRoute = ActivateCompleteRouteImport.update({
+  id: '/activate-complete',
+  path: '/activate-complete',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -87,6 +93,7 @@ const ApiPublicWildapricotWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activate': typeof ActivateRoute
+  '/activate-complete': typeof ActivateCompleteRoute
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/matches': typeof MatchesRouteWithChildren
@@ -101,6 +108,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activate': typeof ActivateRoute
+  '/activate-complete': typeof ActivateCompleteRoute
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/notifications': typeof NotificationsRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activate': typeof ActivateRoute
+  '/activate-complete': typeof ActivateCompleteRoute
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/matches': typeof MatchesRouteWithChildren
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/activate'
+    | '/activate-complete'
     | '/admin'
     | '/dashboard'
     | '/matches'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/activate'
+    | '/activate-complete'
     | '/admin'
     | '/dashboard'
     | '/notifications'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/activate'
+    | '/activate-complete'
     | '/admin'
     | '/dashboard'
     | '/matches'
@@ -173,6 +185,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivateRoute: typeof ActivateRoute
+  ActivateCompleteRoute: typeof ActivateCompleteRoute
   AdminRoute: typeof AdminRoute
   DashboardRoute: typeof DashboardRoute
   MatchesRoute: typeof MatchesRouteWithChildren
@@ -197,6 +210,13 @@ declare module '@tanstack/react-router' {
       path: '/activate'
       fullPath: '/activate'
       preLoaderRoute: typeof ActivateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/activate-complete': {
+      id: '/activate-complete'
+      path: '/activate-complete'
+      fullPath: '/activate-complete'
+      preLoaderRoute: typeof ActivateCompleteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -288,6 +308,7 @@ const MatchesRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivateRoute: ActivateRoute,
+  ActivateCompleteRoute: ActivateCompleteRoute,
   AdminRoute: AdminRoute,
   DashboardRoute: DashboardRoute,
   MatchesRoute: MatchesRouteWithChildren,
