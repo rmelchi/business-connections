@@ -279,6 +279,14 @@ function CompletePage() {
               return;
             }
           }
+
+          if (!active) return;
+
+          /*
+           * Remove all auth callback query and hash
+           * material from the visible URL,
+           * preserving the pathname.
+           */
           if (
             typeof window !== "undefined" &&
             (window.location.search ||
