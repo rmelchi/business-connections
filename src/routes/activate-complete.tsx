@@ -6,6 +6,7 @@ import {
 
 import {
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -92,6 +93,12 @@ function CompletePage() {
   const [pending, setPending] =
     useState(false);
 
+  /*
+   * Guards the PKCE code exchange against a second run when
+   * React StrictMode remounts the effect.
+   */
+  const exchangingRef = useRef(false);
+
   const completeFn =
     useServerFn(completeActivation);
 
@@ -100,6 +107,80 @@ function CompletePage() {
 
     const finishCheck = async () => {
       try {
+        /*
+         * PKCE magic-link callbacks arrive as ?code=... in the
+         * query string. Exchange the code for a session before
+         * reading the stored session.
+         */
+        const params =
+          typeof window !== "undefined"
+            ? new URLSearchParams(
+                window.location.search,
+              )
+            : null;
+
+        const code = params?.get("code") ?? null;
+
+        if (code && !exchangingRef.current) {
+          exchangingRef.current = true;
+
+          const {
+            error: exchangeError,
+          } =
+            await supabase.auth.exchangeCodeForSession(
+              code,
+            );
+
+          if (exchangeError) {
+            console.error(
+              "[activation] code exchange error",
+              exchangeError,
+            );
+
+            /*
+             * If Supabase already exchanged this code
+             * automatically during client initialization,
+             * a valid session can exist even though the
+             * explicit exchange reports an error.
+             */
+            const {
+              data: existing,
+            } =
+              await supabase.auth.getSession();
+
+            if (
+              !existing.session?.user &&
+              active
+            ) {
+              setError(
+                "We could not verify the activation link.",
+              );
+
+              setChecked(true);
+              return;
+            }
+          }
+
+          if (!active) return;
+
+          /*
+           * Remove the code and any other auth callback
+           * query or hash material from the visible URL,
+           * preserving the pathname.
+           */
+          if (
+            typeof window !== "undefined" &&
+            (window.location.search ||
+              window.location.hash)
+          ) {
+            window.history.replaceState(
+              {},
+              document.title,
+              window.location.pathname,
+            );
+          }
+        }
+
         /*
          * getSession() waits for the Supabase auth client to
          * initialize and gives it an opportunity to process
