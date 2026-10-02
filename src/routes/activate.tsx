@@ -83,6 +83,7 @@ function ActivatePage() {
       const res = await requestFn({
         data: {
           email: normalizedEmail,
+          redirectTo: `${window.location.origin}/activate-complete`,
         },
       });
 
