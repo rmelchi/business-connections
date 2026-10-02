@@ -1,19 +1,17 @@
-// Server-side Supabase client for Cloudflare Workers.
+// Server-side Supabase client.
 //
 // SECURITY:
 // This client uses the Supabase secret/service-role key and therefore
 // bypasses Row Level Security. It must only be imported by trusted
 // server-side code.
-//
-// Cloudflare Workers exposes runtime variables and secrets through
-// `cloudflare:workers`, rather than relying on Lovable's process.env setup.
 
-import { env } from "cloudflare:workers";
 import { createClient } from "@supabase/supabase-js";
 
 import type { Database } from "./types";
 
-function isNewSupabaseApiKey(value: string): boolean {
+function isNewSupabaseApiKey(
+  value: string,
+): boolean {
   return (
     value.startsWith("sb_publishable_") ||
     value.startsWith("sb_secret_")
@@ -56,7 +54,10 @@ function createSupabaseFetch(
       headers.delete("Authorization");
     }
 
-    headers.set("apikey", supabaseKey);
+    headers.set(
+      "apikey",
+      supabaseKey,
+    );
 
     return fetch(input, {
       ...init,
@@ -67,18 +68,20 @@ function createSupabaseFetch(
 
 function createSupabaseAdminClient() {
   /*
-   * Cloudflare Worker runtime bindings.
+   * Runtime environment variables.
    *
-   * SUPABASE_URL is a normal Production variable.
-   * SUPABASE_SERVICE_ROLE_KEY is an encrypted Production secret.
+   * These must be configured in the production environment:
+   *
+   * SUPABASE_URL
+   * SUPABASE_SERVICE_ROLE_KEY
    */
   const SUPABASE_URL =
-    env.SUPABASE_URL as string | undefined;
+    process.env["SUPABASE_URL"];
 
   const SUPABASE_SERVICE_ROLE_KEY =
-    env.SUPABASE_SERVICE_ROLE_KEY as
-      | string
-      | undefined;
+    process.env[
+      "SUPABASE_SERVICE_ROLE_KEY"
+    ];
 
   if (
     !SUPABASE_URL ||
@@ -90,7 +93,9 @@ function createSupabaseAdminClient() {
         : []),
 
       ...(!SUPABASE_SERVICE_ROLE_KEY
-        ? ["SUPABASE_SERVICE_ROLE_KEY"]
+        ? [
+            "SUPABASE_SERVICE_ROLE_KEY",
+          ]
         : []),
     ];
 
