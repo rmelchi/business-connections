@@ -118,13 +118,13 @@ function decodeJwtHeader(
 
     return {
       alg:
-        typeof header.alg === "string"
-          ? header.alg
+        typeof header["alg"] === "string"
+          ? header["alg"]
           : null,
 
       kid:
-        typeof header.kid === "string"
-          ? header.kid
+        typeof header["kid"] === "string"
+          ? header["kid"]
           : null,
     };
   } catch {
