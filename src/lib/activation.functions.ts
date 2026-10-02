@@ -1,22 +1,25 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { env } from "cloudflare:workers";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
- * Secure activation for WildApricot-synced member profiles.
+ * Email-verified account activation for WildApricot-synced profiles that have
+ * no linked auth user yet (`profiles.auth_user_id IS NULL`).
  *
  * Flow:
- * 1. Member enters the email address registered in WildApricot.
- * 2. We verify that exactly one active, unlinked profile exists.
- * 3. Supabase sends an email OTP.
- * 4. The browser verifies that OTP directly with Supabase Auth.
- * 5. The verified Supabase session proceeds to /activate-complete.
- * 6. completeActivation re-checks the verified email and atomically
- *    links the Supabase auth user to the existing WildApricot profile.
+ *  1. `requestActivationEmail` checks eligibility (exactly one ACTIVE profile
+ *     for the email, not yet linked) and only then sends a one-time sign-in
+ *     link to that address. No password is set and nothing is linked here.
+ *  2. The member clicks the link, which proves control of the mailbox and
+ *     gives the browser a verified session.
+ *  3. On /activate-complete the member chooses a password and calls
+ *     `completeActivation`, which (server-side, authenticated) re-checks that
+ *     the auth user's email is confirmed and equals the profile email, then
+ *     links with an atomic conditional update (`auth_user_id IS NULL`).
  *
- * No member profile is created here.
+ * No profile is ever created here — WildApricot stays authoritative, and roles,
+ * listings, matches and history attach to the existing profile id unchanged.
  */
 
 export type ActivationStatus =
@@ -44,28 +47,32 @@ async function lookup(
     "@/integrations/supabase/client.server"
   );
 
-  const escapedEmail = email.replace(
-    /[%_\\]/g,
-    "\\$&",
-  );
-
   const { data, error } = await supabaseAdmin
     .from("profiles")
     .select(
       "id, email, name, membership_status, auth_user_id",
     )
-    .ilike("email", escapedEmail);
+    .ilike(
+      "email",
+      email.replace(/[%_\\]/g, "\\$&"),
+    );
 
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 
   const rows = (data ?? []) as ProfileRow[];
 
   if (rows.length === 0) {
-    return { status: "not_found" };
+    return {
+      status: "not_found",
+    };
   }
 
   if (rows.length > 1) {
-    return { status: "ambiguous" };
+    return {
+      status: "ambiguous",
+    };
   }
 
   const profile = rows[0]!;
@@ -90,89 +97,25 @@ async function lookup(
   };
 }
 
-function createPublicSupabaseClient() {
-  const SUPABASE_URL =
-    env.SUPABASE_URL as string | undefined;
-
-  const SUPABASE_PUBLISHABLE_KEY =
-    env.SUPABASE_PUBLISHABLE_KEY as
-      | string
-      | undefined;
-
-  if (
-    !SUPABASE_URL ||
-    !SUPABASE_PUBLISHABLE_KEY
-  ) {
-    const missing = [
-      ...(!SUPABASE_URL
-        ? ["SUPABASE_URL"]
-        : []),
-      ...(!SUPABASE_PUBLISHABLE_KEY
-        ? ["SUPABASE_PUBLISHABLE_KEY"]
-        : []),
-    ];
-
-    throw new Error(
-      `Missing Supabase environment variable(s): ${missing.join(", ")}.`,
-    );
-  }
-
-  return import("@supabase/supabase-js").then(
-    ({ createClient }) =>
-      createClient(
-        SUPABASE_URL,
-        SUPABASE_PUBLISHABLE_KEY,
-        {
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-          },
-
-          global: {
-            fetch: (input, init) => {
-              const headers = new Headers(
-                init?.headers,
-              );
-
-              /*
-               * New Supabase publishable keys are opaque API keys,
-               * rather than JWT bearer tokens.
-               */
-              if (
-                SUPABASE_PUBLISHABLE_KEY.startsWith(
-                  "sb_",
-                ) &&
-                headers.get("Authorization") ===
-                  `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
-              ) {
-                headers.delete("Authorization");
-              }
-
-              headers.set(
-                "apikey",
-                SUPABASE_PUBLISHABLE_KEY,
-              );
-
-              return fetch(input, {
-                ...init,
-                headers,
-              });
-            },
-          },
-        },
-      ),
-  );
-}
-
 /**
- * Send the member an email OTP.
+ * Sends the activation email.
+ *
+ * This deliberately uses process.env rather than importing
+ * "cloudflare:workers". The latter caused the Vite/Rolldown build failure.
  */
 export const requestActivationEmail =
   createServerFn({ method: "POST" })
     .inputValidator((data) =>
       z
         .object({
-          email: z.string().email().max(255),
+          email: z
+            .string()
+            .email()
+            .max(255),
+
+          redirectTo: z
+            .string()
+            .url(),
         })
         .parse(data),
     )
@@ -181,7 +124,8 @@ export const requestActivationEmail =
         .trim()
         .toLowerCase();
 
-      const { status } = await lookup(email);
+      const { status } =
+        await lookup(email);
 
       if (status !== "eligible") {
         return {
@@ -190,31 +134,145 @@ export const requestActivationEmail =
         };
       }
 
-      const client =
-        await createPublicSupabaseClient();
+      /**
+       * Only our activation-complete page may be used
+       * as the redirect destination.
+       */
+      const redirect =
+        new URL(data.redirectTo);
 
-      /*
-       * No emailRedirectTo is supplied.
+      if (
+        redirect.pathname !==
+        "/activate-complete"
+      ) {
+        throw new Error(
+          "Invalid activation redirect.",
+        );
+      }
+
+      const { createClient } =
+        await import(
+          "@supabase/supabase-js"
+        );
+
+      const supabaseUrl =
+        process.env["SUPABASE_URL"];
+
+      const key =
+        process.env[
+          "SUPABASE_PUBLISHABLE_KEY"
+        ] ??
+        process.env[
+          "SUPABASE_ANON_KEY"
+        ];
+
+      if (!supabaseUrl || !key) {
+        const missing = [
+          ...(!supabaseUrl
+            ? ["SUPABASE_URL"]
+            : []),
+
+          ...(!key
+            ? [
+                "SUPABASE_PUBLISHABLE_KEY",
+              ]
+            : []),
+        ];
+
+        console.error(
+          "[activation] Missing environment variables:",
+          missing.join(", "),
+        );
+
+        throw new Error(
+          "Activation service is not configured correctly.",
+        );
+      }
+
+      const client =
+        createClient(
+          supabaseUrl,
+          key,
+          {
+            auth: {
+              persistSession: false,
+              autoRefreshToken: false,
+            },
+
+            global: {
+              fetch: (
+                input,
+                init,
+              ) => {
+                const headers =
+                  new Headers(
+                    init?.headers,
+                  );
+
+                /**
+                 * New Supabase publishable keys are opaque
+                 * API keys, not JWT bearer tokens.
+                 */
+                if (
+                  key.startsWith(
+                    "sb_",
+                  ) &&
+                  headers.get(
+                    "Authorization",
+                  ) ===
+                    `Bearer ${key}`
+                ) {
+                  headers.delete(
+                    "Authorization",
+                  );
+                }
+
+                headers.set(
+                  "apikey",
+                  key,
+                );
+
+                return fetch(
+                  input,
+                  {
+                    ...init,
+                    headers,
+                  },
+                );
+              },
+            },
+          },
+        );
+
+      /**
+       * Supabase sends a one-time email sign-in link.
        *
-       * The Supabase email template will contain {{ .Token }},
-       * allowing the member to enter the OTP directly in the app.
+       * The member clicks it, Supabase verifies ownership
+       * of the email address and redirects the browser to
+       * /activate-complete.
        */
       const { error } =
-        await client.auth.signInWithOtp({
-          email,
-          options: {
-            shouldCreateUser: true,
+        await client.auth.signInWithOtp(
+          {
+            email,
+
+            options: {
+              shouldCreateUser: true,
+
+              emailRedirectTo:
+                redirect.toString(),
+            },
           },
-        });
+        );
 
       if (error) {
         console.error(
-          "[activation] OTP send failed",
+          "[activation] send failed",
           error.message,
         );
 
         throw new Error(
-          "We could not send the verification code. Please try again shortly.",
+          "We could not send the activation email. Please try again shortly.",
         );
       }
 
@@ -225,125 +283,150 @@ export const requestActivationEmail =
     });
 
 /**
- * Called only after the browser has an authenticated Supabase session.
- *
- * The middleware verifies the session before this handler runs.
+ * Completes activation AFTER Supabase has verified the email
+ * and the browser has an authenticated session.
  */
 export const completeActivation =
   createServerFn({ method: "POST" })
-    .middleware([requireSupabaseAuth])
-    .handler(async ({ context }) => {
-      const { supabaseAdmin } = await import(
-        "@/integrations/supabase/client.server"
-      );
-
-      const {
-        data: userRes,
-        error: userErr,
-      } =
-        await supabaseAdmin.auth.admin.getUserById(
-          context.userId,
+    .middleware([
+      requireSupabaseAuth,
+    ])
+    .handler(
+      async ({ context }) => {
+        const {
+          supabaseAdmin,
+        } = await import(
+          "@/integrations/supabase/client.server"
         );
 
-      if (userErr || !userRes.user) {
-        throw new Error(
-          "Your session could not be verified.",
-        );
-      }
+        const {
+          data: userRes,
+          error: userErr,
+        } =
+          await supabaseAdmin.auth.admin.getUserById(
+            context.userId,
+          );
 
-      const user = userRes.user;
+        if (
+          userErr ||
+          !userRes.user
+        ) {
+          throw new Error(
+            "Your session could not be verified.",
+          );
+        }
 
-      const email = user.email
-        ?.trim()
-        .toLowerCase();
+        const user =
+          userRes.user;
 
-      if (
-        !email ||
-        !user.email_confirmed_at
-      ) {
-        return {
-          ok: false as const,
-          status: "not_verified" as const,
-        };
-      }
+        const email =
+          user.email
+            ?.trim()
+            .toLowerCase();
 
-      /*
-       * Idempotency:
-       * if this Supabase user is already linked, activation is
-       * considered successful.
-       */
-      const { data: mine } =
-        await supabaseAdmin
-          .from("profiles")
-          .select("id")
-          .eq(
-            "auth_user_id",
-            user.id,
-          )
-          .maybeSingle();
+        if (
+          !email ||
+          !user.email_confirmed_at
+        ) {
+          return {
+            ok: false as const,
+            status:
+              "not_verified" as const,
+          };
+        }
 
-      if (mine) {
+        /**
+         * If this Supabase user is already linked,
+         * consider activation successful.
+         *
+         * This makes the operation safe to retry.
+         */
+        const { data: mine } =
+          await supabaseAdmin
+            .from("profiles")
+            .select("id")
+            .eq(
+              "auth_user_id",
+              user.id,
+            )
+            .maybeSingle();
+
+        if (mine) {
+          return {
+            ok: true as const,
+            status:
+              "linked" as const,
+            profileId:
+              mine.id,
+          };
+        }
+
+        /**
+         * Re-check eligibility after email verification.
+         */
+        const {
+          status,
+          profile,
+        } =
+          await lookup(email);
+
+        if (
+          status !==
+            "eligible" ||
+          !profile
+        ) {
+          return {
+            ok: false as const,
+            status,
+          };
+        }
+
+        /**
+         * Atomically claim the existing WildApricot profile.
+         *
+         * We only update the row if auth_user_id is still NULL.
+         * Therefore two different auth users cannot activate
+         * the same member profile simultaneously.
+         */
+        const {
+          data: linked,
+          error: linkError,
+        } =
+          await supabaseAdmin
+            .from("profiles")
+            .update({
+              auth_user_id:
+                user.id,
+            })
+            .eq(
+              "id",
+              profile.id,
+            )
+            .is(
+              "auth_user_id",
+              null,
+            )
+            .select("id")
+            .maybeSingle();
+
+        if (linkError) {
+          throw linkError;
+        }
+
+        if (!linked) {
+          return {
+            ok: false as const,
+            status:
+              "already_activated" as const,
+          };
+        }
+
         return {
           ok: true as const,
-          status: "linked" as const,
-          profileId: mine.id,
-        };
-      }
-
-      /*
-       * Re-check WildApricot-derived eligibility AFTER email
-       * verification.
-       */
-      const {
-        status,
-        profile,
-      } = await lookup(email);
-
-      if (
-        status !== "eligible" ||
-        !profile
-      ) {
-        return {
-          ok: false as const,
-          status,
-        };
-      }
-
-      /*
-       * Atomic conditional link.
-       *
-       * We only claim the profile if auth_user_id is still NULL.
-       * This prevents two auth users from activating the same
-       * WildApricot profile concurrently.
-       */
-      const {
-        data: linked,
-        error: linkError,
-      } = await supabaseAdmin
-        .from("profiles")
-        .update({
-          auth_user_id: user.id,
-        })
-        .eq("id", profile.id)
-        .is("auth_user_id", null)
-        .select("id")
-        .maybeSingle();
-
-      if (linkError) {
-        throw linkError;
-      }
-
-      if (!linked) {
-        return {
-          ok: false as const,
           status:
-            "already_activated" as const,
+            "linked" as const,
+          profileId:
+            profile.id,
         };
-      }
-
-      return {
-        ok: true as const,
-        status: "linked" as const,
-        profileId: profile.id,
-      };
-    });
+      },
+    );
