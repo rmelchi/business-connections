@@ -99,6 +99,12 @@ function CompletePage() {
    */
   const exchangingRef = useRef(false);
 
+  /*
+   * Guards the implicit-flow hash session against a second
+   * run when React StrictMode remounts the effect.
+   */
+  const implicitRef = useRef(false);
+
   const completeFn =
     useServerFn(completeActivation);
 
@@ -106,7 +112,103 @@ function CompletePage() {
     let active = true;
 
     const finishCheck = async () => {
-      try {
+    try {
+        /*
+         * Production implicit-flow magic links arrive as
+         * #access_token=... in the URL hash. Establish the
+         * session explicitly before any getSession/getUser
+         * checks; tokens are never logged.
+         */
+        const hashParams =
+          typeof window !== "undefined" &&
+          window.location.hash
+            ? new URLSearchParams(
+                window.location.hash.replace(
+                  /^#/,
+                  "",
+                ),
+              )
+            : null;
+
+        const implicitAccessToken =
+          hashParams?.get(
+            "access_token",
+          ) ?? null;
+
+        const implicitRefreshToken =
+          hashParams?.get(
+            "refresh_token",
+          ) ?? null;
+
+        if (
+          implicitAccessToken &&
+          implicitRefreshToken &&
+          !implicitRef.current
+        ) {
+          implicitRef.current = true;
+
+          const {
+            error: implicitError,
+          } =
+            await supabase.auth.setSession(
+              {
+                access_token:
+                  implicitAccessToken,
+                refresh_token:
+                  implicitRefreshToken,
+              },
+            );
+
+          if (implicitError) {
+            console.error(
+              "[activation] implicit session error",
+              implicitError,
+            );
+
+            /*
+             * If Supabase already processed the hash
+             * during client initialization, a valid
+             * session can exist even though the
+             * explicit setSession reported an error.
+             */
+            const {
+              data: existing,
+            } =
+              await supabase.auth.getSession();
+
+            if (
+              !existing.session?.user &&
+              active
+            ) {
+              setError(
+                "We could not verify the activation link.",
+              );
+
+              setChecked(true);
+              return;
+            }
+          }
+
+          if (!active) return;
+
+          /*
+           * Remove all auth callback query and hash
+           * material from the visible URL,
+           * preserving the pathname.
+           */
+          if (
+            typeof window !== "undefined" &&
+            (window.location.search ||
+              window.location.hash)
+          ) {
+            window.history.replaceState(
+              {},
+              document.title,
+              window.location.pathname,
+            );
+          }
+        }
+
         /*
          * PKCE magic-link callbacks arrive as ?code=... in the
          * query string. Exchange the code for a session before
