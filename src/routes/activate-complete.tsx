@@ -111,20 +111,20 @@ function decodeJwtHeader(
       return null;
     }
 
-    const header = parsed as Record<
-      string,
-      unknown
-    >;
+    const header = parsed as {
+      alg?: unknown;
+      kid?: unknown;
+    };
 
     return {
       alg:
-        typeof header["alg"] === "string"
-          ? header["alg"]
+        typeof header.alg === "string"
+          ? header.alg
           : null,
 
       kid:
-        typeof header["kid"] === "string"
-          ? header["kid"]
+        typeof header.kid === "string"
+          ? header.kid
           : null,
     };
   } catch {
@@ -184,7 +184,7 @@ function CompletePage() {
     let active = true;
 
     const finishCheck = async () => {
-    try {
+      try {
         /*
          * Production implicit-flow magic links arrive as
          * #access_token=... in the URL hash. Establish the
@@ -625,37 +625,37 @@ function CompletePage() {
               .
             </p>
 
-              {error && (
-                <p
-                  role="alert"
-                  className="mt-4 text-sm text-destructive"
-                >
-                  {error}
-                </p>
-              )}
+            {error && (
+              <p
+                role="alert"
+                className="mt-4 text-sm text-destructive"
+              >
+                {error}
+              </p>
+            )}
 
-              {error &&
-                (tokenAlg || tokenKid) && (
-                  <div className="mt-3 rounded-sm border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                    <p className="font-medium text-foreground">
-                      Token diagnostics
+            {error &&
+              (tokenAlg || tokenKid) && (
+                <div className="mt-3 rounded-sm border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                  <p className="font-medium text-foreground">
+                    Token diagnostics
+                  </p>
+
+                  {tokenAlg && (
+                    <p className="mt-1">
+                      Token algorithm:{" "}
+                      {tokenAlg}
                     </p>
+                  )}
 
-                    {tokenAlg && (
-                      <p className="mt-1">
-                        Token algorithm:{" "}
-                        {tokenAlg}
-                      </p>
-                    )}
-
-                    {tokenKid && (
-                      <p className="mt-1">
-                        Token key ID:{" "}
-                        {tokenKid}
-                      </p>
-                    )}
-                  </div>
-                )}
+                  {tokenKid && (
+                    <p className="mt-1">
+                      Token key ID:{" "}
+                      {tokenKid}
+                    </p>
+                  )}
+                </div>
+              )}
           </>
         ) : (
           <>
