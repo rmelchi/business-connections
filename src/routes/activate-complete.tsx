@@ -72,66 +72,6 @@ const FAIL: Record<string, string> = {
     "More than one member profile uses this email. Please contact the association office.",
 };
 
-/*
- * Decodes ONLY the first JWT segment (the header) as
- * base64url JSON and returns the non-secret fields
- * alg and kid. The payload and signature segments are
- * never touched. Returns null when parsing fails.
- */
-function decodeJwtHeader(
-  token: string,
-): { alg: string | null; kid: string | null } | null {
-  try {
-    const segment =
-      token.trim().split(".")[0] ?? "";
-
-    if (!segment) {
-      return null;
-    }
-
-    const normalized = segment
-      .replace(/-/g, "+")
-      .replace(/_/g, "/");
-
-    const padded =
-      normalized +
-      "=".repeat((4 - (normalized.length % 4)) % 4);
-
-    const json = atob(padded);
-
-    const parsed: unknown = JSON.parse(
-      json,
-    );
-
-    if (
-      !parsed ||
-      typeof parsed !== "object" ||
-      Array.isArray(parsed)
-    ) {
-      return null;
-    }
-
-    const header = parsed as {
-      alg?: unknown;
-      kid?: unknown;
-    };
-
-    return {
-      alg:
-        typeof header.alg === "string"
-          ? header.alg
-          : null,
-
-      kid:
-        typeof header.kid === "string"
-          ? header.kid
-          : null,
-    };
-  } catch {
-    return null;
-  }
-}
-
 function CompletePage() {
   const navigate = useNavigate();
 
@@ -152,18 +92,6 @@ function CompletePage() {
 
   const [pending, setPending] =
     useState(false);
-
-  /*
-   * Non-secret diagnostic fields decoded locally from the
-   * implicit-flow token header. The token itself, its
-   * payload and its signature are never displayed,
-   * logged or stored.
-   */
-  const [tokenAlg, setTokenAlg] =
-    useState<string | null>(null);
-
-  const [tokenKid, setTokenKid] =
-    useState<string | null>(null);
 
   /*
    * Guards the PKCE code exchange against a second run when
@@ -252,25 +180,6 @@ function CompletePage() {
               !existing.session?.user &&
               active
             ) {
-              /*
-               * Local diagnostic: decode only the JWT
-               * header to surface alg and kid. The
-               * token, payload and signature are
-               * never displayed, logged or stored.
-               */
-              const header =
-                decodeJwtHeader(
-                  implicitAccessToken,
-                );
-
-              setTokenAlg(
-                header?.alg ?? null,
-              );
-
-              setTokenKid(
-                header?.kid ?? null,
-              );
-
               setError(
                 "We could not verify the activation link.",
               );
@@ -537,9 +446,6 @@ function CompletePage() {
     setPending(true);
     setError("");
 
-    setTokenAlg(null);
-    setTokenKid(null);
-
     try {
       /*
        * First link the verified Supabase user to the
@@ -633,29 +539,6 @@ function CompletePage() {
                 {error}
               </p>
             )}
-
-            {error &&
-              (tokenAlg || tokenKid) && (
-                <div className="mt-3 rounded-sm border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                  <p className="font-medium text-foreground">
-                    Token diagnostics
-                  </p>
-
-                  {tokenAlg && (
-                    <p className="mt-1">
-                      Token algorithm:{" "}
-                      {tokenAlg}
-                    </p>
-                  )}
-
-                  {tokenKid && (
-                    <p className="mt-1">
-                      Token key ID:{" "}
-                      {tokenKid}
-                    </p>
-                  )}
-                </div>
-              )}
           </>
         ) : (
           <>
