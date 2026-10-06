@@ -25,6 +25,15 @@ type ListingDraft = Omit<
   "id" | "member_id" | "kind" | "created_at" | "updated_at" | "embedding"
 > & { expires_at?: string | null };
 
+export type MutualInterestContact = {
+  mutual_interest: boolean;
+  counterpart_profile_id: string | null;
+  counterpart_name: string | null;
+  counterpart_company: string | null;
+  counterpart_email: string | null;
+  counterpart_phone: string | null;
+};
+
 interface StoreValue {
   members: Member[];
   offers: Offer[];
@@ -45,6 +54,9 @@ interface StoreValue {
     id: string,
   ) => Promise<void>;
   setInterest: (matchId: string, state: InterestState) => Promise<void>;
+  getMutualInterestContact: (
+    matchId: string,
+  ) => Promise<MutualInterestContact | null>;
   markNotificationsRead: () => Promise<void>;
   refreshNetwork: () => Promise<void>;
   memberById: (id: string) => Member | undefined;
@@ -574,8 +586,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         );
       }
 
-      // The listing content has changed, so allow the current
-      // member's recalculated matches to be persisted again.
       persistedRef.current = "";
 
       return true;
@@ -664,11 +674,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     ) => {
       if (!currentMember) return;
 
-      setFeedback((prev) => ({
-        ...prev,
-        [matchId]: state,
-      }));
-
       const { error: fbError } = await supabase
         .from("match_feedback")
         .upsert(
@@ -682,9 +687,65 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           },
         );
 
-      if (fbError) setError(fbError.message);
+      if (fbError) {
+        setError(fbError.message);
+        return;
+      }
+
+      setFeedback((prev) => ({
+        ...prev,
+        [matchId]: state,
+      }));
     },
     [currentMember],
+  );
+
+  const getMutualInterestContact = useCallback(
+    async (
+      matchId: string,
+    ): Promise<MutualInterestContact | null> => {
+      setError(null);
+
+      const { data, error: rpcError } = await supabase.rpc(
+        "get_mutual_interest_contact",
+        {
+          _match_id: matchId,
+        },
+      );
+
+      if (rpcError) {
+        setError(rpcError.message);
+        return null;
+      }
+
+      const row = Array.isArray(data) ? data[0] : data;
+
+      if (!row) {
+        return {
+          mutual_interest: false,
+          counterpart_profile_id: null,
+          counterpart_name: null,
+          counterpart_company: null,
+          counterpart_email: null,
+          counterpart_phone: null,
+        };
+      }
+
+      return {
+        mutual_interest: Boolean(row.mutual_interest),
+        counterpart_profile_id:
+          row.counterpart_profile_id ?? null,
+        counterpart_name:
+          row.counterpart_name ?? null,
+        counterpart_company:
+          row.counterpart_company ?? null,
+        counterpart_email:
+          row.counterpart_email ?? null,
+        counterpart_phone:
+          row.counterpart_phone ?? null,
+      };
+    },
+    [],
   );
 
   const markNotificationsRead = useCallback(async () => {
@@ -720,6 +781,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     updateRequest,
     toggleListingStatus,
     setInterest,
+    getMutualInterestContact,
     markNotificationsRead,
     refreshNetwork: refresh,
     memberById: (id) =>
