@@ -667,13 +667,62 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [offers, requests],
   );
 
-  const setInterest = useCallback(
+   const setInterest = useCallback(
     async (
       matchId: string,
       state: InterestState,
     ) => {
       if (!currentMember) return;
 
+      setError(null);
+
+      /*
+       * Feedback has a foreign key to public.matches.
+       * Before recording a member's decision, make sure the
+       * calculated match has been persisted to the database.
+       */
+      const match = computed.find((m) => m.id === matchId);
+
+      if (!match) {
+        setError("This match could not be found.");
+        return;
+      }
+
+      const { error: matchError } = await supabase
+        .from("matches")
+        .upsert(
+          {
+            id: match.id,
+            request_id: match.request_id,
+            offer_id: match.offer_id,
+            requester_id: match.requester_id,
+            provider_id: match.provider_id,
+            score: match.score,
+            factors: JSON.parse(
+              JSON.stringify(match.factors),
+            ),
+            explanation: match.explanation,
+            request_excerpt: match.request_excerpt,
+            offer_excerpt: match.offer_excerpt,
+            reciprocal: match.reciprocal,
+            reciprocal_match_id:
+              match.reciprocal_match_id ?? null,
+            engine: "deterministic-v1",
+          },
+          {
+            onConflict: "id",
+          },
+        );
+
+      if (matchError) {
+        setError(matchError.message);
+        return;
+      }
+
+      /*
+       * The parent match now exists, so the feedback row can
+       * safely reference it.
+       */
       const { error: fbError } = await supabase
         .from("match_feedback")
         .upsert(
@@ -697,9 +746,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         [matchId]: state,
       }));
     },
-    [currentMember],
+    [currentMember, computed],
   );
-
   const getMutualInterestContact = useCallback(
     async (
       matchId: string,
