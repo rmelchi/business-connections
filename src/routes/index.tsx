@@ -1,3 +1,4 @@
+
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
@@ -22,12 +23,6 @@ export const Route = createFileRoute("/")({
   component: LoginPage,
 });
 
-const DEMO = [
-  { email: "giulia@tenutaferrari.it", label: "Giulia Ferrari · Italian producer" },
-  { email: "marcus@goldenstatefinefoods.com", label: "Marcus Bell · California distributor" },
-  { email: "sofia@italiancommerce.org", label: "Sofia Conti · Association admin" },
-];
-
 function LoginPage() {
   const { signIn } = useStore();
   const navigate = useNavigate();
@@ -36,16 +31,21 @@ function LoginPage() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
-  const submit = async (value: string, pw?: string) => {
+  const submit = async (value: string, pw: string) => {
     if (pending) return;
     setPending(true);
     setError("");
+
     try {
       const err = await signIn(value, pw);
       if (err) setError(err);
       else await navigate({ to: "/dashboard" });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Sign-in failed. Please try again.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Sign-in failed. Please try again.",
+      );
     } finally {
       setPending(false);
     }
@@ -58,18 +58,23 @@ function LoginPage() {
           <span className="grid size-9 place-items-center rounded-sm bg-brass font-display text-sm font-bold text-brass-foreground">
             BM
           </span>
-          <span className="font-display text-lg font-semibold">Business Match</span>
+          <span className="font-display text-lg font-semibold">
+            Business Match
+          </span>
         </div>
 
         <div className="max-w-xl">
-          <p className="text-eyebrow text-brass">Member opportunity network</p>
+          <p className="text-eyebrow text-brass">
+            Member opportunity network
+          </p>
           <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.08]">
             Find the right business opportunity within your network.
           </h1>
           <p className="mt-6 text-[15px] leading-relaxed text-ink-foreground/70">
-            Business Match reads what members are looking for and what they can provide, then
-            surfaces the pairings worth a conversation — including mutual opportunities where both
-            sides need what the other offers.
+            Business Match reads what members are looking for and what they
+            can provide, then surfaces the pairings worth a conversation —
+            including mutual opportunities where both sides need what the
+            other offers.
           </p>
           <dl className="mt-10 grid grid-cols-3 gap-6 border-t border-ink-foreground/15 pt-8">
             {[
@@ -78,8 +83,12 @@ function LoginPage() {
               ["Private", "Contact details stay protected until mutual interest"],
             ].map(([t, d]) => (
               <div key={t}>
-                <dt className="font-display text-base font-semibold text-brass">{t}</dt>
-                <dd className="mt-1 text-[13px] leading-relaxed text-ink-foreground/60">{d}</dd>
+                <dt className="font-display text-base font-semibold text-brass">
+                  {t}
+                </dt>
+                <dd className="mt-1 text-[13px] leading-relaxed text-ink-foreground/60">
+                  {d}
+                </dd>
               </div>
             ))}
           </dl>
@@ -93,7 +102,9 @@ function LoginPage() {
       <section className="flex items-center justify-center bg-background px-6 py-16">
         <div className="w-full max-w-sm">
           <p className="text-eyebrow">Member access</p>
-          <h2 className="mt-2 font-display text-3xl font-semibold">Sign in</h2>
+          <h2 className="mt-2 font-display text-3xl font-semibold">
+            Sign in
+          </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Use the email address registered with your membership.
           </p>
@@ -102,7 +113,7 @@ function LoginPage() {
             className="mt-8 grid gap-4"
             onSubmit={(e) => {
               e.preventDefault();
-              void submit(email, password || undefined);
+              void submit(email, password);
             }}
           >
             <div className="grid gap-2">
@@ -119,6 +130,7 @@ function LoginPage() {
                 placeholder="you@company.com"
               />
             </div>
+
             <div className="grid gap-2">
               <label className="text-eyebrow" htmlFor="password">
                 Password
@@ -126,17 +138,20 @@ function LoginPage() {
               <input
                 id="password"
                 type="password"
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-sm border border-input bg-card px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                 placeholder="••••••••"
               />
             </div>
+
             {error && (
               <p role="alert" className="text-sm text-destructive">
                 {error}
               </p>
             )}
+
             <button
               type="submit"
               disabled={pending}
@@ -148,27 +163,13 @@ function LoginPage() {
 
           <p className="mt-4 text-sm text-muted-foreground">
             First time signing in?{" "}
-            <Link to="/activate" className="font-medium text-foreground underline underline-offset-4">
+            <Link
+              to="/activate"
+              className="font-medium text-foreground underline underline-offset-4"
+            >
               Activate your account
             </Link>
           </p>
-
-          <div className="mt-10 rounded-md border border-border bg-surface p-4">
-            <p className="text-eyebrow">Demo accounts</p>
-            <div className="mt-3 grid gap-2">
-              {DEMO.map((d) => (
-                <button
-                  key={d.email}
-                  type="button"
-                  disabled={pending}
-                  onClick={() => void submit(d.email)}
-                  className="rounded-sm border border-border bg-card px-3 py-2 text-left text-[13px] transition-colors hover:border-ring disabled:opacity-60"
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
     </div>
