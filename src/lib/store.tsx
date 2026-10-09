@@ -425,24 +425,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           return null;
         }
 
-        const { provisionDemoAccount, DEMO_ACCOUNTS } =
-          await import("./auth.functions");
-
-        if (!(DEMO_ACCOUNTS as readonly string[]).includes(address)) {
-          return "Please enter your password. First time here? Activate your account below.";
-        }
-
-        const creds = await provisionDemoAccount({
-          data: { email: address },
-        });
-
-        const { error: signInError } =
-          await supabase.auth.signInWithPassword(creds);
-
-        if (signInError) throw signInError;
-
-        await refresh();
-        return null;
+      return "Please enter your password. First time here? Activate your account below.";
       } catch (e) {
         return e instanceof Error
           ? e.message
