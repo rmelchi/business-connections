@@ -170,6 +170,25 @@ function LoginPage() {
               Activate your account
             </Link>
           </p>
+        
+          <div className="mt-8 border-t border-border pt-6">
+            <h3 className="font-display text-lg font-semibold">
+              Not an IT-COMM member yet?
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Join IT-COMM to access Business Match, connect with
+              fellow members, and discover new business opportunities.
+            </p>
+            <a
+              href="https://italiancommerce.org/join-us"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Become an IT-COMM Member →
+            </a>
+          </div>
+
         </div>
       </section>
     </div>
