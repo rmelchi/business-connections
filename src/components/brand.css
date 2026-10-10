@@ -1,0 +1,21 @@
+
+/* IT-COMM Business Match — Central Logo Styling */
+
+.brand-logo {
+  display: block;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Dashboard navigation */
+.brand-logo--medium {
+  height: 56px;
+  max-width: 200px;
+}
+
+/* Login page */
+.brand-logo--large {
+  height: 64px;
+  max-width: 220px;
+}
