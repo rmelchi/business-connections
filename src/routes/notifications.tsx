@@ -36,7 +36,7 @@ function NotificationsPage() {
     <AppShell
       eyebrow="Activity"
       title="Notifications"
-      description="You are alerted whenever the matching engine discovers a strong new match or a mutual opportunity involving your listings."
+      description="Stay informed about new business matches, members interested in your opportunities, and mutual interests that unlock direct contact."
     >
       <div className="grid gap-3">
         {notifications.map((n) => (
@@ -58,7 +58,7 @@ function NotificationsPage() {
         ))}
         {notifications.length === 0 && (
           <p className="surface-card p-8 text-sm text-muted-foreground">
-            No strong matches yet. Publish more detailed offers and requests to improve match
+            No notifications yet. Publish offers and requests to discover business matches and connect with interested members.
             quality.
           </p>
         )}
