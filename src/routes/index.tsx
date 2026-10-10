@@ -2,6 +2,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
+import { BrandLogo } from "@/components/BrandLogo";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/")({
@@ -56,11 +57,7 @@ function LoginPage() {
       <section className="relative hidden flex-col justify-between bg-ink px-14 py-14 text-ink-foreground lg:flex">
         <div className="flex items-center gap-2.5">
 
-          <img
-            src="https://italiancommerce.org/resources/Pictures/icons/logo1.png"
-            alt="Italian Commerce Association"
-            className="h-12 w-auto max-w-[160px] object-contain"
-          />
+          <BrandLogo size="large" />
 
           <span className="font-display text-lg font-semibold">
             Business Match
