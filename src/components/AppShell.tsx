@@ -61,9 +61,13 @@ export function AppShell({
       <header className="sticky top-0 z-40 border-b border-border/80 bg-ink text-ink-foreground">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-8 px-5 lg:px-8">
           <Link to="/dashboard" className="flex items-center gap-2.5">
-            <span className="grid size-8 place-items-center rounded-sm bg-brass font-display text-sm font-bold text-brass-foreground">
-              BM
-            </span>
+            
+            <img
+              src="https://italiancommerce.org/resources/Pictures/icons/logo1.png"
+              alt="Italian Commerce Association"
+              className="h-10 w-auto max-w-[140px] object-contain"
+            />
+
             <span className="font-display text-lg font-semibold tracking-tight">
               Business Match
             </span>
