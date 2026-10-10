@@ -1,13 +1,7 @@
-import {
-  createFileRoute,
-  Link,
-  useNavigate,
-} from "@tanstack/react-router";
 
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-
-import { supabase } from "@/integrations/supabase/client";
 
 import {
   requestActivationEmail,
@@ -16,12 +10,10 @@ import {
 
 export const Route = createFileRoute("/activate")({
   ssr: false,
-
   head: () => ({
     meta: [
       {
-        title:
-          "Activate your account — Business Match",
+        title: "Activate your account — Business Match",
       },
       {
         name: "description",
@@ -30,7 +22,6 @@ export const Route = createFileRoute("/activate")({
       },
     ],
   }),
-
   component: ActivatePage,
 });
 
@@ -40,42 +31,27 @@ const MESSAGES: Record<
 > = {
   already_activated:
     "This member account is already active. Go back and sign in with your email and password.",
-
   inactive:
     "Your membership is not currently active, so account activation is unavailable. Please contact the association office.",
-
   not_found:
     "We could not find a member profile with that email address. Use the address registered with your membership.",
-
   ambiguous:
     "More than one member profile uses that email address. Please contact the association office so it can be resolved.",
 };
 
 function ActivatePage() {
-  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [sentTo, setSentTo] = useState("");
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
-  const [step, setStep] =
-    useState<"email" | "code">("email");
+  const requestFn = useServerFn(requestActivationEmail);
 
-  const [email, setEmail] =
-    useState("");
+  const sendActivationEmail = async () => {
+    if (pending) return;
 
-  const [code, setCode] =
-    useState("");
+    const normalizedEmail = email.trim().toLowerCase();
 
-  const [error, setError] =
-    useState("");
-
-  const [pending, setPending] =
-    useState(false);
-
-  const requestFn =
-    useServerFn(requestActivationEmail);
-
-  const normalizedEmail =
-    email.trim().toLowerCase();
-
-  const sendCode = async () => {
     setPending(true);
     setError("");
 
@@ -88,83 +64,22 @@ function ActivatePage() {
       });
 
       if (res.sent) {
-        setStep("code");
+        setSentTo(normalizedEmail);
         return;
       }
 
       setError(
         MESSAGES[
-          res.status as Exclude<
-            ActivationStatus,
-            "eligible"
-          >
+          res.status as Exclude<ActivationStatus, "eligible">
         ],
       );
     } catch (e) {
-      console.error(
-        "activation",
-        e,
-      );
+      console.error("activation", e);
 
       setError(
         e instanceof Error
           ? e.message
           : "Something went wrong. Please try again.",
-      );
-    } finally {
-      setPending(false);
-    }
-  };
-
-  const verifyCode = async () => {
-    const token = code
-      .replace(/\s/g, "")
-      .trim();
-
-    if (!token) {
-      setError(
-        "Enter the verification code from your email.",
-      );
-      return;
-    }
-
-    setPending(true);
-    setError("");
-
-    try {
-      const {
-        data,
-        error: verifyError,
-      } =
-        await supabase.auth.verifyOtp({
-          email: normalizedEmail,
-          token,
-          type: "email",
-        });
-
-      if (
-        verifyError ||
-        !data.session ||
-        !data.user
-      ) {
-        throw new Error(
-          "That verification code is invalid or has expired. Please check the code and try again.",
-        );
-      }
-
-      await navigate({
-        to: "/activate-complete",
-      });
-    } catch (e) {
-      console.error(
-        "OTP verification",
-        e,
-      );
-
-      setError(
-        e instanceof Error
-          ? e.message
-          : "We could not verify that code.",
       );
     } finally {
       setPending(false);
@@ -177,35 +92,28 @@ function ActivatePage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6 py-16">
       <div className="w-full max-w-sm">
-        <p className="text-eyebrow">
-          Member access
-        </p>
+        <p className="text-eyebrow">Member access</p>
 
         <h1 className="mt-2 font-display text-3xl font-semibold">
           Activate your account
         </h1>
 
-        {step === "email" ? (
+        {!sentTo ? (
           <>
             <p className="mt-2 text-sm text-muted-foreground">
-              Enter the email address
-              registered with your
-              membership. We will send you
-              a one-time verification code.
+              Enter the email address registered with your membership.
+              We will send you a secure activation link by email.
             </p>
 
             <form
               className="mt-8 grid gap-4"
               onSubmit={(e) => {
                 e.preventDefault();
-                void sendCode();
+                void sendActivationEmail();
               }}
             >
               <div className="grid gap-2">
-                <label
-                  className="text-eyebrow"
-                  htmlFor="email"
-                >
+                <label className="text-eyebrow" htmlFor="email">
                   Email
                 </label>
 
@@ -214,11 +122,7 @@ function ActivatePage() {
                   type="email"
                   required
                   value={email}
-                  onChange={(e) =>
-                    setEmail(
-                      e.target.value,
-                    )
-                  }
+                  onChange={(e) => setEmail(e.target.value)}
                   className={input}
                   placeholder="you@company.com"
                   autoComplete="email"
@@ -226,10 +130,7 @@ function ActivatePage() {
               </div>
 
               {error && (
-                <p
-                  role="alert"
-                  className="text-sm text-destructive"
-                >
+                <p role="alert" className="text-sm text-destructive">
                   {error}
                 </p>
               )}
@@ -239,109 +140,64 @@ function ActivatePage() {
                 disabled={pending}
                 className="mt-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
               >
-                {pending
-                  ? "Sending…"
-                  : "Send verification code"}
+                {pending ? "Sending…" : "Send activation email"}
               </button>
             </form>
           </>
         ) : (
           <>
-            <p className="mt-2 text-sm text-muted-foreground">
-              We sent a verification code
-              to{" "}
-              <strong>
-                {normalizedEmail}
-              </strong>
-              . Enter the code below.
+            <h2 className="mt-6 font-display text-xl font-semibold">
+              Check your email
+            </h2>
+
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              We sent an activation email to{" "}
+              <strong className="text-foreground">{sentTo}</strong>.
             </p>
 
-            <form
-              className="mt-8 grid gap-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void verifyCode();
-              }}
-            >
-              <div className="grid gap-2">
-                <label
-                  className="text-eyebrow"
-                  htmlFor="code"
-                >
-                  Verification code
-                </label>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Open the email from IT-COMM Business Matching and click
+              the confirmation button. You will then be able to
+              complete your account activation and set your password.
+            </p>
 
-                <input
-                  id="code"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  required
-                  value={code}
-                  onChange={(e) =>
-                    setCode(
-                      e.target.value,
-                    )
-                  }
-                  className={input}
-                  placeholder="Enter code"
-                  autoFocus
-                />
-              </div>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              If you do not see the email, check your spam or junk folder.
+            </p>
 
-              {error && (
-                <p
-                  role="alert"
-                  className="text-sm text-destructive"
-                >
-                  {error}
-                </p>
-              )}
+            {error && (
+              <p role="alert" className="mt-4 text-sm text-destructive">
+                {error}
+              </p>
+            )}
 
+            <div className="mt-8 grid gap-4">
               <button
-                type="submit"
+                type="button"
                 disabled={pending}
-                className="mt-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+                onClick={() => void sendActivationEmail()}
+                className="rounded-sm border border-border bg-card px-4 py-2.5 text-sm font-semibold transition-colors hover:border-ring disabled:opacity-60"
               >
-                {pending
-                  ? "Verifying…"
-                  : "Verify email"}
+                {pending ? "Sending…" : "Resend activation email"}
               </button>
 
               <button
                 type="button"
                 disabled={pending}
                 onClick={() => {
-                  setCode("");
-                  setError("");
-                  void sendCode();
-                }}
-                className="text-sm underline underline-offset-4 disabled:opacity-60"
-              >
-                Send a new code
-              </button>
-
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => {
-                  setStep("email");
-                  setCode("");
+                  setSentTo("");
                   setError("");
                 }}
                 className="text-sm text-muted-foreground underline underline-offset-4 disabled:opacity-60"
               >
                 Use a different email
               </button>
-            </form>
+            </div>
           </>
         )}
 
         <p className="mt-6 text-sm">
-          <Link
-            to="/"
-            className="underline underline-offset-4"
-          >
+          <Link to="/" className="underline underline-offset-4">
             Back to sign in
           </Link>
         </p>
