@@ -55,9 +55,13 @@ function LoginPage() {
     <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
       <section className="relative hidden flex-col justify-between bg-ink px-14 py-14 text-ink-foreground lg:flex">
         <div className="flex items-center gap-2.5">
-          <span className="grid size-9 place-items-center rounded-sm bg-brass font-display text-sm font-bold text-brass-foreground">
-            BM
-          </span>
+
+          <img
+            src="https://italiancommerce.org/resources/Pictures/icons/logo1.png"
+            alt="Italian Commerce Association"
+            className="h-12 w-auto max-w-[160px] object-contain"
+          />
+
           <span className="font-display text-lg font-semibold">
             Business Match
           </span>
